@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Schedule & Google Calendar Integration</title>
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+  <div class="app-wrapper">
+    <!-- Header -->
+    <header>
+      <div class="brand-section">
+        <h1>
+          <i data-lucide="calendar-days"></i>
+          Project Schedule Dashboard
+        </h1>
+        <p>Integrasi Penjadwalan Proyek & Google Calendar</p>
+      </div>
+      <div class="header-actions">
+        <!-- Settings Button -->
+        <button class="btn btn-secondary" id="btn-open-settings" title="Pengaturan Google Calendar">
+          <i data-lucide="settings"></i>
+          Pengaturan API
+        </button>
+        <!-- Sync to Google Calendar Button -->
+        <button class="btn btn-accent" id="btn-sync-gcal" title="Sinkronisasi ke Google Calendar">
+          <i data-lucide="refresh-cw"></i>
+          Sync to Google Calendar
+        </button>
+        <!-- Download ICS Button -->
+        <button class="btn btn-primary" id="btn-export-ics" title="Ekspor file Kalender (.ics)">
+          <i data-lucide="download"></i>
+          Ekspor ICS
+        </button>
+        <!-- Theme Toggle -->
+        <button class="btn-icon" id="btn-toggle-theme" title="Ubah Tema">
+          <i data-lucide="sun"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Dashboard Overview -->
+    <section class="stats-dashboard">
+      <!-- Total Tasks Card -->
+      <div class="stat-card">
+        <div class="stat-icon-wrapper">
+          <i data-lucide="clipboard-list"></i>
+        </div>
+        <div class="stat-info" style="flex-grow: 1;">
+          <h3>Total Tugas</h3>
+          <div class="stat-value" id="stat-total-tasks">0</div>
+        </div>
+      </div>
+      <!-- Completion Rate Card -->
+      <div class="stat-card">
+        <div class="stat-icon-wrapper" style="color: #10b981;">
+          <i data-lucide="check-circle-2"></i>
+        </div>
+        <div class="stat-info" style="flex-grow: 1;">
+          <h3>Tingkat Penyelesaian</h3>
+          <div class="stat-value" id="stat-completion-rate">0%</div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="stat-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Reza Workload -->
+      <div class="stat-card">
+        <div class="stat-icon-wrapper" style="color: var(--color-assignee-reza);">
+          <i data-lucide="user"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Reza Febriadi</h3>
+          <div class="stat-value" id="stat-workload-reza">0 Tugas</div>
+        </div>
+      </div>
+      <!-- Annas Workload -->
+      <div class="stat-card">
+        <div class="stat-icon-wrapper" style="color: var(--color-assignee-annas);">
+          <i data-lucide="user"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Kak Annas</h3>
+          <div class="stat-value" id="stat-workload-annas">0 Tugas</div>
+        </div>
+      </div>
+      <!-- MHS Workload -->
+      <div class="stat-card">
+        <div class="stat-icon-wrapper" style="color: var(--color-assignee-timmhs);">
+          <i data-lucide="users"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Tim MHS</h3>
+          <div class="stat-value" id="stat-workload-timmhs">0 Tugas</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar: Tabs & Filters -->
+    <section class="toolbar">
+      <!-- Tabs Switcher -->
+      <div class="view-tabs">
+        <button class="tab-btn active" data-view="gantt">
+          <i data-lucide="gantt-chart"></i>
+          Gantt Chart
+        </button>
+        <button class="tab-btn" data-view="kanban">
+          <i data-lucide="columns-3"></i>
+          Kanban Board
+        </button>
+        <button class="tab-btn" data-view="calendar">
+          <i data-lucide="calendar"></i>
+          Calendar
+        </button>
+        <button class="tab-btn" data-view="list">
+          <i data-lucide="list"></i>
+          Daftar Tugas
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <!-- Add Task Button -->
+        <button class="btn btn-primary" id="btn-add-task">
+          <i data-lucide="plus"></i>
+          Tambah Tugas
+        </button>
+        <!-- Search Input -->
+        <div class="search-input-wrapper">
+          <i data-lucide="search"></i>
+          <input type="text" class="search-input" id="filter-search" placeholder="Cari nama tugas...">
+        </div>
+        <!-- Category Filter -->
+        <select class="select-filter" id="filter-category">
+          <option value="">Semua Kategori</option>
+        </select>
+        <!-- Assignee Filter -->
+        <select class="select-filter" id="filter-assignee">
+          <option value="">Semua Anggota</option>
+          <option value="reza">REZA FEBRIADI</option>
+          <option value="annas">KAK ANNAS</option>
+          <option value="timmhs">TIM MHS</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- MAIN VIEW PANELS -->
+
+    <!-- PANEL 1: GANTT CHART -->
+    <div class="view-panel active" id="panel-gantt">
+      <div class="gantt-card">
+        <div class="gantt-scrollable-container">
+          <table class="gantt-table" id="gantt-table">
+            <thead>
+              <!-- Top Row: Project Schedule Title Banner -->
+              <tr>
+                <th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job Description</th>
+                <th colspan="16" class="project-schedule-title">Project Schedule (Juli - Agustus 2026)</th>
+              </tr>
+              <!-- Second Row: Date Numbers -->
+              <tr id="gantt-date-header-row">
+                <!-- Populated dynamically: 30, 31, 1, 2, ... 14 -->
+              </tr>
+            </thead>
+            <tbody id="gantt-tbody">
+              <!-- Populated dynamically grouped by category -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Legend -->
+        <div class="gantt-legend">
+          <div class="legend-item">
+            <div class="legend-color-box assignee-reza-bg"></div>
+            <span>REZA FEBRIADI</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color-box assignee-annas-bg"></div>
+            <span>KAK ANNAS</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color-box assignee-timmhs-bg"></div>
+            <span>TIM MHS</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color-box" style="background-color: var(--bg-weekend); border: 1px solid var(--border-weekend);"></div>
+            <span>Akhir Pekan (Sabtu/Minggu)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: KANBAN BOARD -->
+    <div class="view-panel" id="panel-kanban">
+      <div class="kanban-board">
+        <!-- TO DO column -->
+        <div class="kanban-column col-todo">
+          <div class="kanban-column-header">
+            <h3 class="kanban-column-title">
+              <i data-lucide="circle-dashed"></i>
+              TO DO
+            </h3>
+            <span class="kanban-column-badge" id="badge-todo-count">0</span>
+          </div>
+          <div class="kanban-cards-wrapper" id="kanban-todo-list">
+            <!-- Cards go here -->
+          </div>
+        </div>
+        <!-- IN PROGRESS column -->
+        <div class="kanban-column col-in-progress">
+          <div class="kanban-column-header">
+            <h3 class="kanban-column-title">
+              <i data-lucide="play-circle"></i>
+              IN PROGRESS
+            </h3>
+            <span class="kanban-column-badge" id="badge-progress-count">0</span>
+          </div>
+          <div class="kanban-cards-wrapper" id="kanban-progress-list">
+            <!-- Cards go here -->
+          </div>
+        </div>
+        <!-- COMPLETED column -->
+        <div class="kanban-column col-done">
+          <div class="kanban-column-header">
+            <h3 class="kanban-column-title">
+              <i data-lucide="check-circle-2"></i>
+              COMPLETED
+            </h3>
+            <span class="kanban-column-badge" id="badge-done-count">0</span>
+          </div>
+          <div class="kanban-cards-wrapper" id="kanban-done-list">
+            <!-- Cards go here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 3: MONTHLY CALENDAR -->
+    <div class="view-panel" id="panel-calendar">
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <h2 class="calendar-month-year" id="calendar-title">Agustus 2026</h2>
+          <div class="calendar-nav-buttons">
+            <button class="btn btn-icon" id="btn-prev-month"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn-secondary" id="btn-current-month">Bulan Ini</button>
+            <button class="btn btn-icon" id="btn-next-month"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="calendar-weekdays-grid">
+          <div>Min</div>
+          <div>Sen</div>
+          <div>Sel</div>
+          <div>Rab</div>
+          <div>Kam</div>
+          <div>Jum</div>
+          <div>Sab</div>
+        </div>
+        <div class="calendar-days-grid" id="calendar-days-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 4: TASK LIST TABLE -->
+    <div class="view-panel" id="panel-list">
+      <div class="list-card">
+        <div class="list-table-container">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>Tugas / Pekerjaan</th>
+                <th>Kategori</th>
+                <th>Penanggung Jawab</th>
+                <th>Mulai</th>
+                <th>Selesai</th>
+                <th>Status</th>
+                <th>Catatan</th>
+                <th style="width: 80px; text-align: center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="list-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+     MODALS SECTION
+     ========================================================================== -->
+
+  <!-- Modal 1: Google Calendar Configuration -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <i data-lucide="settings"></i>
+          Pengaturan API Google Calendar
+        </h2>
+        <button class="btn-icon" id="btn-close-settings" style="border: none; background: none;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="setup-guide">
+          <strong>Langkah Setup Cepat:</strong>
+          <ol>
+            <li>Buka <strong>Google Cloud Console</strong> & buat Project baru.</li>
+            <li>Aktifkan <strong>Google Calendar API</strong>.</li>
+            <li>Di menu <strong>OAuth consent screen</strong>, atur user type Internal/External.</li>
+            <li>Di menu <strong>Credentials</strong>, buat <em>OAuth Client ID</em> (Web application) & <em>API Key</em>.</li>
+            <li>Tambahkan <code>http://localhost</code> atau URI host Anda ke daftar authorized JavaScript origins.</li>
+          </ol>
+        </div>
+        <form id="form-settings">
+          <div class="form-group">
+            <label class="form-label" for="setting-client-id">Google OAuth Client ID</label>
+            <input type="text" class="form-control" id="setting-client-id" placeholder="123456-abcdef.apps.googleusercontent.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-api-key">Google API Key</label>
+            <input type="password" class="form-control" id="setting-api-key" placeholder="AIzaSyA1..." required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-calendar-id">Calendar ID (Optional)</label>
+            <input type="text" class="form-control" id="setting-calendar-id" value="primary" placeholder="primary atau email-anda@gmail.com">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-settings">Batal</button>
+        <button class="btn btn-primary" id="btn-save-settings">Simpan Kredensial</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Task Create & Edit Dialog -->
+  <div class="modal-backdrop" id="modal-task">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-task-title">
+          <i data-lucide="edit-3"></i>
+          Tambah / Edit Tugas
+        </h2>
+        <button class="btn-icon" id="btn-close-task" style="border: none; background: none;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-task">
+          <input type="hidden" id="task-form-id">
+          
+          <div class="form-group">
+            <label class="form-label" for="task-form-title">Nama Tugas / Pekerjaan</label>
+            <input type="text" class="form-control" id="task-form-title" placeholder="Contoh: Desain Banner Utama" required>
+          </div>
+
+          <div class="form-group row-flex">
+            <div>
+              <label class="form-label" for="task-form-category">Kategori Proyek</label>
+              <select class="form-control" id="task-form-category" required>
+                <!-- Filled dynamically + Add Custom option -->
+              </select>
+            </div>
+            <div>
+              <label class="form-label" for="task-form-assignee">Penanggung Jawab</label>
+              <select class="form-control" id="task-form-assignee" required>
+                <option value="reza">REZA FEBRIADI</option>
+                <option value="annas">KAK ANNAS</option>
+                <option value="timmhs">TIM MHS</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group row-flex">
+            <div>
+              <label class="form-label" for="task-form-start-date">Tanggal Mulai</label>
+              <input type="date" class="form-control" id="task-form-start-date" required>
+            </div>
+            <div>
+              <label class="form-label" for="task-form-end-date">Tanggal Selesai</label>
+              <input type="date" class="form-control" id="task-form-end-date" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="task-form-status">Status Pengerjaan</label>
+            <select class="form-control" id="task-form-status" required>
+              <option value="todo">TO DO</option>
+              <option value="in-progress">IN PROGRESS</option>
+              <option value="done">COMPLETED</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="task-form-notes">Catatan Tambahan</label>
+            <textarea class="form-control" id="task-form-notes" placeholder="Catatan atau keterangan tugas..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-delete-task" style="background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444; margin-right: auto; display: none;">
+          <i data-lucide="trash-2"></i>
+          Hapus Tugas
+        </button>
+        <button class="btn btn-secondary" id="btn-cancel-task">Batal</button>
+        <button class="btn btn-primary" id="btn-save-task">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loader Overlay for Active API Actions -->
+  <div class="modal-backdrop" id="modal-sync-progress" style="background-color: rgba(0, 0, 0, 0.75);">
+    <div class="modal-content" style="max-width: 320px; border-radius: 1rem; border: 1px solid var(--border-color);">
+      <div class="modal-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; gap: 1rem;">
+        <div class="spinner"></div>
+        <div class="sync-status-text" id="sync-progress-title">Sinkronisasi Kalender...</div>
+        <div class="sync-progress-bar">
+          <div class="sync-progress-fill" id="sync-progress-fill"></div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary);" id="sync-progress-detail">Tugas 0 dari 0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Calendar API SDK & Lucide Icons -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Project Scripts -->
+  <script src="data.js"></script>
+  <script src="gcal.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
