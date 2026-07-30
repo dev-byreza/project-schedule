@@ -1715,7 +1715,7 @@ textarea.form-control {
  * Detects dynamic execution environment: Local vs. Google Apps Script
  */
 
-const isGoogleAppsScript = (typeof google !== 'undefined' && google.script && google.script.run);
+
 
 function showCustomAlert(message, title = "Informasi") {
   return new Promise((resolve) => {
@@ -1897,20 +1897,15 @@ class GoogleCalendarService {
     localStorage.setItem("gcal_api_key", apiKey);
     localStorage.setItem("gcal_calendar_id", this.calendarId);
     
-    if (isGoogleAppsScript) {
-      google.script.run.saveCalendarId(this.calendarId);
-    } else {
-      this.initTokenClient();
-    }
+    this.initTokenClient();
   }
 
   hasCredentials() {
-    if (isGoogleAppsScript) return true; // GAS handles authentication implicitly on the backend
     return this.clientId && this.apiKey;
   }
 
   initTokenClient() {
-    if (!this.clientId || isGoogleAppsScript) return;
+    if (!this.clientId) return;
     try {
       this.tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: this.clientId,
@@ -1932,10 +1927,6 @@ class GoogleCalendarService {
   }
 
   authenticate(callback) {
-    if (isGoogleAppsScript) {
-      if (callback) callback();
-      return;
-    }
     if (!this.clientId) {
       alert("Harap atur Google Client ID terlebih dahulu di menu Pengaturan.");
       return;
@@ -1955,7 +1946,6 @@ class GoogleCalendarService {
   }
 
   signOut() {
-    if (isGoogleAppsScript) return;
     if (this.accessToken) {
       google.accounts.oauth2.revokeToken(this.accessToken, () => {
         console.log("Token revoked");
@@ -1967,7 +1957,6 @@ class GoogleCalendarService {
   }
 
   async syncTasks(tasks, progressCallback) {
-    if (isGoogleAppsScript) return; // Managed by Code.gs syncTasksToGoogleCalendarServer
     if (!this.accessToken) {
       throw new Error("Not authenticated");
     }
@@ -2264,16 +2253,12 @@ function migrateDataFrom32To33() {
 }
 
 function initData() {
-  if (isGoogleAppsScript) {
-    // Single server call to get ALL data at once - much more reliable
-    google.script.run
-      .withFailureHandler((err) => {
-        console.error("getAllData failed:", err);
-        loadFallbackAndRender();
-      })
-      .withSuccessHandler((data) => {
-        if (!data) { loadFallbackAndRender(); return; }
-        appProjects  = (data.projects  && data.projects.length  > 0) ? data.projects  : ["Wisuda XXXIII"];
+  // Cloud API Fetch (Vercel + Prisma Postgres)
+  fetch('/api/data')
+    .then(res => res.json())
+    .then(data => {
+      if (data && !data.error) {
+        appProjects  = (data.projects && data.projects.length > 0) ? data.projects : ["Wisuda XXXIII"];
         appAssignees = (data.assignees && data.assignees.length > 0) ? data.assignees : [
           { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
           { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
@@ -2288,38 +2273,14 @@ function initData() {
 
         migrateDataFrom32To33();
         finishLoadAndRender();
-      })
-      .getAllData();
-  } else {
-    // Cloud API Fetch (Vercel + Prisma Postgres)
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(data => {
-        if (data && !data.error) {
-          appProjects  = (data.projects && data.projects.length > 0) ? data.projects : ["Wisuda XXXIII"];
-          appAssignees = (data.assignees && data.assignees.length > 0) ? data.assignees : [
-            { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
-            { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
-            { id: "timmhs", name: "TIM MHS", color: "#10b981" }
-          ];
-          appTasks      = data.tasks || [];
-          appCategories = (data.categories && data.categories.length > 0) ? data.categories : [...INITIAL_CATEGORIES];
-
-          if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
-            currentProject = appProjects[0];
-          }
-
-          migrateDataFrom32To33();
-          finishLoadAndRender();
-        } else {
-          loadFallbackAndRender();
-        }
-      })
-      .catch(err => {
-        console.warn("Cloud API unavailable, using local fallback:", err);
+      } else {
         loadFallbackAndRender();
-      });
-  }
+      }
+    })
+    .catch(err => {
+      console.warn("Cloud API unavailable, using local fallback:", err);
+      loadFallbackAndRender();
+    });
 }
 
 function loadFallbackAndRender() {
@@ -2348,21 +2309,17 @@ function finishLoadAndRender() {
 }
 
 function saveTasksToLocalStorage() {
-  if (isGoogleAppsScript) {
-    return google.script.run.saveTasks(appTasks);
-  } else {
-    localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-    return fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tasks: appTasks,
-        projects: appProjects,
-        categories: appCategories,
-        assignees: appAssignees
-      })
-    }).catch(err => console.error("Cloud sync error:", err));
-  }
+  localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+  return fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tasks: appTasks,
+      projects: appProjects,
+      categories: appCategories,
+      assignees: appAssignees
+    })
+  }).catch(err => console.error("Cloud sync error:", err));
 }
 
 function updateTaskStatusDirectly(taskId, newStatus) {
@@ -2577,23 +2534,13 @@ function setupEventListeners() {
         }
 
         // Save database state
-        if (isGoogleAppsScript) {
-          google.script.run
-            .withSuccessHandler(() => {
-              populateProjectDropdowns();
-              renderAllViews();
-              alert("Project berhasil dihapus!");
-            })
-            .saveAllData(appTasks, appCategories, appProjects, appAssignees);
-        } else {
-          localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-          localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-          saveTasksToLocalStorage();
-          
-          populateProjectDropdowns();
-          renderAllViews();
-          alert("Project berhasil dihapus!");
-        }
+        localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+        localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+        saveTasksToLocalStorage();
+        
+        populateProjectDropdowns();
+        renderAllViews();
+        alert("Project berhasil dihapus!");
       }
     } else if (newProjName && newProjName.trim() !== "" && newProjName.trim() !== currentProject) {
       const trimmed = newProjName.trim();
@@ -2617,13 +2564,9 @@ function setupEventListeners() {
       
       currentProject = trimmed;
       
-      if (isGoogleAppsScript) {
-        google.script.run.saveProjects(appProjects);
-        google.script.run.saveTasks(appTasks);
-      } else {
-        localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-        localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-      }
+      localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+      localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+      saveTasksToLocalStorage();
       
       populateProjectDropdowns();
       renderAllViews();
@@ -2655,22 +2598,12 @@ function setupEventListeners() {
       document.getElementById("btn-delete-assignee").style.display = "none";
 
       // Save database state
-      if (isGoogleAppsScript) {
-        google.script.run
-          .withSuccessHandler(() => {
-            populateAssigneeDropdowns();
-            renderAllViews();
-            alert("Anggota berhasil dihapus!");
-          })
-          .saveAllData(appTasks, appCategories, appProjects, appAssignees);
-      } else {
-        localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-        saveTasksToLocalStorage();
-        
-        populateAssigneeDropdowns();
-        renderAllViews();
-        alert("Anggota berhasil dihapus!");
-      }
+      localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+      saveTasksToLocalStorage();
+      
+      populateAssigneeDropdowns();
+      renderAllViews();
+      alert("Anggota berhasil dihapus!");
     }
   });
 
@@ -3642,34 +3575,18 @@ function handleICSImport(file) {
         appTasks = appTasks.concat(newTasks);
       }
 
-      // Save database state
-      if (isGoogleAppsScript) {
-        google.script.run
-          .withSuccessHandler(() => {
-            populateDropdowns();
-            populateProjectDropdowns();
-            populateAssigneeDropdowns();
-            renderAllViews();
-            alert(`Sukses mengimpor ${newTasks.length} tugas!`);
-          })
-          .withFailureHandler((err) => {
-            alert("Gagal menyimpan data ke Google Sheets: " + err.message);
-          })
-          .saveAllData(appTasks, appCategories, appProjects, appAssignees);
-      } else {
-        // Save to local storage & Cloud API
-        localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-        localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-        localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
-        
-        await saveTasksToLocalStorage();
-        
-        populateDropdowns();
-        populateProjectDropdowns();
-        populateAssigneeDropdowns();
-        renderAllViews();
-        alert(`Sukses mengimpor ${newTasks.length} tugas!`);
-      }
+      // Save to local storage & Cloud API
+      localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+      localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+      localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
+      
+      await saveTasksToLocalStorage();
+      
+      populateDropdowns();
+      populateProjectDropdowns();
+      populateAssigneeDropdowns();
+      renderAllViews();
+      alert(`Sukses mengimpor ${newTasks.length} tugas!`);
     } catch (err) {
       console.error(err);
       alert("Gagal membaca atau memproses file ICS: " + err.message);
