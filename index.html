@@ -2393,79 +2393,53 @@ function migrateDataFrom32To33() {
 
 function initData() {
   if (isGoogleAppsScript) {
-    // First, ensure the spreadsheet/database is initialized on the server
+    // Single server call to get ALL data at once - much more reliable
     google.script.run
-      .withSuccessHandler(() => {
-        // Database is ready, now load data
-        google.script.run
-          .withFailureHandler((err) => {
-            console.error("getProjects failed:", err);
-            loadFallbackAndRender();
-          })
-          .withSuccessHandler((projects) => {
-            appProjects = projects && projects.length > 0 ? projects : ["Wisuda XXXIII"];
-            if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
-              currentProject = appProjects[0];
-            }
-
-            google.script.run
-              .withFailureHandler((err) => { console.error("getAssignees failed:", err); })
-              .withSuccessHandler((assignees) => {
-                appAssignees = assignees && assignees.length > 0 ? assignees : [
-                  { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
-                  { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
-                  { id: "timmhs", name: "TIM MHS", color: "#10b981" }
-                ];
-
-                google.script.run
-                  .withFailureHandler((err) => { console.error("getCalendarId failed:", err); })
-                  .withSuccessHandler((calId) => {
-                    if (calId) {
-                      gcalService.calendarId = calId;
-                      const calInput = document.getElementById("setting-calendar-id");
-                      if (calInput) calInput.value = calId;
-                    }
-
-                    google.script.run
-                      .withFailureHandler((err) => {
-                        console.error("getTasks failed:", err);
-                        appTasks = [...INITIAL_TASKS];
-                        finishLoadAndRender();
-                      })
-                      .withSuccessHandler((tasks) => {
-                        appTasks = tasks && tasks.length > 0 ? tasks : [...INITIAL_TASKS];
-
-                        google.script.run
-                          .withFailureHandler((err) => { console.error("getCategories failed:", err); })
-                          .withSuccessHandler((categories) => {
-                            appCategories = categories && categories.length > 0
-                              ? categories
-                              : [...INITIAL_CATEGORIES];
-                            migrateDataFrom32To33();
-                            finishLoadAndRender();
-                          })
-                          .getCategories();
-                      })
-                      .getTasks();
-                  })
-                  .getCalendarId();
-              })
-              .getAssignees();
-          })
-          .getProjects();
-      })
       .withFailureHandler((err) => {
-        console.error("setupDatabase failed:", err);
+        console.error("getAllData failed:", err);
+        // Show error to user and fall back to local data
+        const body = document.querySelector("body");
+        if (body) {
+          const errBanner = document.createElement("div");
+          errBanner.style.cssText = "position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;padding:8px 16px;font-size:13px;z-index:9999;text-align:center;";
+          errBanner.innerHTML = "⚠️ Gagal memuat data dari server: " + (err.message || err) + " — Silakan refresh halaman atau periksa izin Apps Script.";
+          body.prepend(errBanner);
+        }
         loadFallbackAndRender();
       })
-      .setupDatabase();
+      .withSuccessHandler((data) => {
+        if (!data) { loadFallbackAndRender(); return; }
+        
+        appProjects  = (data.projects  && data.projects.length  > 0) ? data.projects  : ["Wisuda XXXIII"];
+        appAssignees = (data.assignees && data.assignees.length > 0) ? data.assignees : [
+          { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
+          { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
+          { id: "timmhs", name: "TIM MHS", color: "#10b981" }
+        ];
+        appTasks      = (data.tasks      && data.tasks.length      > 0) ? data.tasks      : [...INITIAL_TASKS];
+        appCategories = (data.categories && data.categories.length > 0) ? data.categories : [...INITIAL_CATEGORIES];
+
+        if (data.calendarId) {
+          gcalService.calendarId = data.calendarId;
+          const calInput = document.getElementById("setting-calendar-id");
+          if (calInput) calInput.value = data.calendarId;
+        }
+
+        if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
+          currentProject = appProjects[0];
+        }
+
+        migrateDataFrom32To33();
+        finishLoadAndRender();
+      })
+      .getAllData();
   } else {
     loadFallbackAndRender();
   }
 }
 
 function loadFallbackAndRender() {
-  // Local fallback using localStorage
+  // Local fallback using localStorage (also used when GAS call fails)
   const savedProjects = localStorage.getItem("project_schedule_projects");
   if (savedProjects) {
     appProjects = JSON.parse(savedProjects);
@@ -2491,7 +2465,6 @@ function loadFallbackAndRender() {
     appTasks = JSON.parse(savedTasks);
   } else {
     appTasks = [...INITIAL_TASKS];
-    saveTasksToLocalStorage();
   }
 
   const savedCategories = localStorage.getItem("project_schedule_categories");

@@ -76,6 +76,39 @@ function setupDatabase() {
 }
 
 /**
+ * Load ALL data in a single server call - more reliable than chaining 5 calls.
+ * Returns: { tasks, categories, projects, assignees, calendarId }
+ */
+function getAllData() {
+  try {
+    setupDatabase(); // Ensure DB is ready and seeded
+    return {
+      tasks: getTasks(),
+      categories: getCategories(),
+      projects: getProjects(),
+      assignees: getAssignees(),
+      calendarId: getCalendarId()
+    };
+  } catch(e) {
+    Logger.log("getAllData error: " + e.message);
+    // Return initial data as fallback so UI is never empty
+    return {
+      tasks: getInitialTasks().map(function(t) {
+        return {
+          id: t.id, title: t.title, category: t.category,
+          assignee: t.assignee, startDate: t.startDate, endDate: t.endDate,
+          status: t.status, notes: t.notes || "", project: getInitialProjects()[0]
+        };
+      }),
+      categories: getInitialCategories(),
+      projects: getInitialProjects(),
+      assignees: getInitialAssigneesList(),
+      calendarId: ""
+    };
+  }
+}
+
+/**
  * 1. Database Connection & Self-Healing Setup
  */
 function getSpreadsheet() {
