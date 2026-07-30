@@ -13,6 +13,28 @@ function doGet() {
 }
 
 /**
+ * Called by frontend on startup to ensure the database (Spreadsheet) is ready.
+ * Creates and seeds the spreadsheet if it doesn't exist yet.
+ */
+function setupDatabase() {
+  try {
+    var ss = getSpreadsheet();
+    if (!ss) {
+      throw new Error("Could not access or create the spreadsheet database.");
+    }
+    // Ensure all required sheets exist
+    getTasksSheet(ss);
+    getCategoriesSheet(ss);
+    getProjectsSheet(ss);
+    getAssigneesSheet(ss);
+    return true;
+  } catch(e) {
+    Logger.log("setupDatabase error: " + e.message);
+    throw e;
+  }
+}
+
+/**
  * 1. Database Connection & Self-Healing Setup
  */
 function getSpreadsheet() {

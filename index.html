@@ -2393,88 +2393,125 @@ function migrateDataFrom32To33() {
 
 function initData() {
   if (isGoogleAppsScript) {
+    // First, ensure the spreadsheet/database is initialized on the server
     google.script.run
-      .withSuccessHandler((projects) => {
-        appProjects = projects;
-        if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
-          currentProject = appProjects[0];
-        }
-        
+      .withSuccessHandler(() => {
+        // Database is ready, now load data
         google.script.run
-          .withSuccessHandler((assignees) => {
-            appAssignees = assignees;
-            
-            google.script.run
-              .withSuccessHandler((calId) => {
-                gcalService.calendarId = calId;
-                document.getElementById("setting-calendar-id").value = calId;
-                
-                google.script.run
-                  .withSuccessHandler((tasks) => {
-                    appTasks = tasks;
-                    google.script.run
-                      .withSuccessHandler((categories) => {
-                        appCategories = categories;
-                        migrateDataFrom32To33();
-                        populateDropdowns();
-                        populateProjectDropdowns();
-                        populateAssigneeDropdowns();
-                        renderAllViews();
-                      })
-                      .getCategories();
-                  })
-                  .getTasks();
-              })
-              .getCalendarId();
+          .withFailureHandler((err) => {
+            console.error("getProjects failed:", err);
+            loadFallbackAndRender();
           })
-          .getAssignees();
-      })
-      .getProjects();
-  } else {
-    // Local fallback
-    const savedProjects = localStorage.getItem("project_schedule_projects");
-    if (savedProjects) {
-      appProjects = JSON.parse(savedProjects);
-    } else {
-      appProjects = ["Wisuda XXXIII"];
-      localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-    }
-    
-    const savedAssignees = localStorage.getItem("project_schedule_assignees");
-    if (savedAssignees) {
-      appAssignees = JSON.parse(savedAssignees);
-    } else {
-      appAssignees = [
-        { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
-        { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
-        { id: "timmhs", name: "TIM MHS", color: "#10b981" }
-      ];
-      localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-    }
-    
-    const savedTasks = localStorage.getItem("project_schedule_tasks");
-    if (savedTasks) {
-      appTasks = JSON.parse(savedTasks);
-    } else {
-      appTasks = [...INITIAL_TASKS];
-      saveTasksToLocalStorage();
-    }
+          .withSuccessHandler((projects) => {
+            appProjects = projects && projects.length > 0 ? projects : ["Wisuda XXXIII"];
+            if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
+              currentProject = appProjects[0];
+            }
 
-    const savedCategories = localStorage.getItem("project_schedule_categories");
-    if (savedCategories) {
-      appCategories = JSON.parse(savedCategories);
-    }
-    
-    if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
-      currentProject = appProjects[0];
-    }
-    
-    migrateDataFrom32To33();
-    populateDropdowns();
-    populateProjectDropdowns();
-    populateAssigneeDropdowns();
-    renderAllViews();
+            google.script.run
+              .withFailureHandler((err) => { console.error("getAssignees failed:", err); })
+              .withSuccessHandler((assignees) => {
+                appAssignees = assignees && assignees.length > 0 ? assignees : [
+                  { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
+                  { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
+                  { id: "timmhs", name: "TIM MHS", color: "#10b981" }
+                ];
+
+                google.script.run
+                  .withFailureHandler((err) => { console.error("getCalendarId failed:", err); })
+                  .withSuccessHandler((calId) => {
+                    if (calId) {
+                      gcalService.calendarId = calId;
+                      const calInput = document.getElementById("setting-calendar-id");
+                      if (calInput) calInput.value = calId;
+                    }
+
+                    google.script.run
+                      .withFailureHandler((err) => {
+                        console.error("getTasks failed:", err);
+                        appTasks = [...INITIAL_TASKS];
+                        finishLoadAndRender();
+                      })
+                      .withSuccessHandler((tasks) => {
+                        appTasks = tasks && tasks.length > 0 ? tasks : [...INITIAL_TASKS];
+
+                        google.script.run
+                          .withFailureHandler((err) => { console.error("getCategories failed:", err); })
+                          .withSuccessHandler((categories) => {
+                            appCategories = categories && categories.length > 0
+                              ? categories
+                              : [...INITIAL_CATEGORIES];
+                            migrateDataFrom32To33();
+                            finishLoadAndRender();
+                          })
+                          .getCategories();
+                      })
+                      .getTasks();
+                  })
+                  .getCalendarId();
+              })
+              .getAssignees();
+          })
+          .getProjects();
+      })
+      .withFailureHandler((err) => {
+        console.error("setupDatabase failed:", err);
+        loadFallbackAndRender();
+      })
+      .setupDatabase();
+  } else {
+    loadFallbackAndRender();
   }
+}
+
+function loadFallbackAndRender() {
+  // Local fallback using localStorage
+  const savedProjects = localStorage.getItem("project_schedule_projects");
+  if (savedProjects) {
+    appProjects = JSON.parse(savedProjects);
+  } else {
+    appProjects = ["Wisuda XXXIII"];
+    localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+  }
+
+  const savedAssignees = localStorage.getItem("project_schedule_assignees");
+  if (savedAssignees) {
+    appAssignees = JSON.parse(savedAssignees);
+  } else {
+    appAssignees = [
+      { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
+      { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
+      { id: "timmhs", name: "TIM MHS", color: "#10b981" }
+    ];
+    localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+  }
+
+  const savedTasks = localStorage.getItem("project_schedule_tasks");
+  if (savedTasks) {
+    appTasks = JSON.parse(savedTasks);
+  } else {
+    appTasks = [...INITIAL_TASKS];
+    saveTasksToLocalStorage();
+  }
+
+  const savedCategories = localStorage.getItem("project_schedule_categories");
+  if (savedCategories) {
+    appCategories = JSON.parse(savedCategories);
+  }
+
+  if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
+    currentProject = appProjects[0];
+  }
+
+  migrateDataFrom32To33();
+  finishLoadAndRender();
+}
+
+function finishLoadAndRender() {
+  populateDropdowns();
+  populateProjectDropdowns();
+  populateAssigneeDropdowns();
+  renderAllViews();
 }
 
 function saveTasksToLocalStorage() {
