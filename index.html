@@ -830,6 +830,8 @@
       grid-auto-rows: minmax(100px, auto);
       border-top: 1px solid var(--border-color);
       border-left: 1px solid var(--border-color);
+      user-select: none;
+      /* Cegah text ter-select saat di drag */
     }
 
     .calendar-day-cell {
@@ -841,6 +843,8 @@
       gap: 0.25rem;
       background-color: var(--bg-secondary);
       transition: var(--transition-fast);
+      cursor: crosshair;
+      /* Kursor agar terkesan bisa ditarik */
     }
 
     .calendar-day-cell.other-month {
@@ -863,6 +867,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      pointer-events: none;
+      /* Cegah klik mengenai tanggal angka */
     }
 
     .calendar-day-cell.today .calendar-day-number {
@@ -887,11 +893,19 @@
       box-shadow: var(--shadow-sm);
       transition: var(--transition-fast);
       color: #0f172a;
+      z-index: 10;
     }
 
     .calendar-event-block:hover {
       filter: brightness(1.1);
       transform: translateX(1px);
+    }
+
+    /* Efek Highlight untuk Drag & Drop Kalender */
+    .calendar-day-cell.drag-highlight {
+      background-color: rgba(99, 102, 241, 0.15) !important;
+      border: 1px dashed var(--accent-color);
+      box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.1);
     }
 
     /* ==========================================================================
@@ -1250,6 +1264,200 @@
         width: 100%;
       }
     }
+
+    /* ==========================================================================
+       QUICK ADD BLOCK
+       ========================================================================== */
+    .quick-add-block {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%);
+      border: 1.5px solid rgba(124, 58, 237, 0.25);
+      border-radius: 1rem;
+      padding: 0.9rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quick-add-block::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #7c3aed, #10b981);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .quick-add-block:focus-within {
+      border-color: rgba(124, 58, 237, 0.55);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .quick-add-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #7c3aed;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .quick-add-label i {
+      width: 14px;
+      height: 14px;
+    }
+
+    .quick-add-title {
+      flex: 1;
+      min-width: 180px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.5rem;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      padding: 0.45rem 0.85rem;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .quick-add-title::placeholder {
+      color: var(--text-muted);
+    }
+
+    .quick-add-title:focus {
+      border-color: rgba(124, 58, 237, 0.5);
+      background: rgba(124, 58, 237, 0.06);
+    }
+
+    .quick-add-select {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.5rem;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      font-family: inherit;
+      padding: 0.45rem 0.65rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .quick-add-select:focus {
+      border-color: rgba(124, 58, 237, 0.5);
+    }
+
+    .quick-add-date {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.5rem;
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      font-family: inherit;
+      padding: 0.45rem 0.65rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      color-scheme: dark;
+    }
+
+    .quick-add-date:focus {
+      border-color: rgba(124, 58, 237, 0.5);
+    }
+
+    .quick-add-date-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .quick-add-date-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-quick-add {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1.1rem;
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      border: none;
+      border-radius: 0.5rem;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-quick-add:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
+    }
+
+    .btn-quick-add:active {
+      transform: translateY(0);
+    }
+
+    .btn-quick-add:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-quick-add i {
+      width: 14px;
+      height: 14px;
+    }
+
+    .quick-add-success-flash {
+      animation: successFlash 0.5s ease;
+    }
+
+    @keyframes successFlash {
+      0% {
+        border-color: rgba(16, 185, 129, 0.8);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
+
+      100% {
+        border-color: rgba(124, 58, 237, 0.25);
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .quick-add-block {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+      }
+
+      .quick-add-title,
+      .quick-add-select,
+      .quick-add-date {
+        width: 100%;
+      }
+
+      .btn-quick-add {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 
@@ -1323,6 +1531,46 @@
       <div id="workload-stats-container" style="display: contents;">
         <!-- Dynamically rendered workload cards -->
       </div>
+    </section>
+
+    <!-- Quick Add Block -->
+    <section class="quick-add-block" id="quick-add-block">
+      <span class="quick-add-label">
+        <i data-lucide="zap"></i>
+        TAMBAH CEPAT
+      </span>
+
+      <input type="text" class="quick-add-title" id="quick-add-title" placeholder="✏️  Nama tugas baru... (tekan Enter)"
+        autocomplete="off" />
+
+      <select class="quick-add-select" id="quick-add-category">
+        <!-- Populated dynamically -->
+      </select>
+
+      <select class="quick-add-select" id="quick-add-assignee">
+        <!-- Populated dynamically -->
+      </select>
+
+      <div class="quick-add-date-group">
+        <span class="quick-add-date-label">Mulai</span>
+        <input type="date" class="quick-add-date" id="quick-add-start" />
+      </div>
+
+      <div class="quick-add-date-group">
+        <span class="quick-add-date-label">Selesai</span>
+        <input type="date" class="quick-add-date" id="quick-add-end" />
+      </div>
+
+      <select class="quick-add-select" id="quick-add-status">
+        <option value="todo">📋 To Do</option>
+        <option value="in-progress">▶️ In Progress</option>
+        <option value="done">✅ Done</option>
+      </select>
+
+      <button class="btn-quick-add" id="btn-quick-add-submit">
+        <i data-lucide="plus-circle"></i>
+        Tambah Tugas
+      </button>
     </section>
 
     <!-- Toolbar: Tabs & Filters -->
@@ -2225,6 +2473,41 @@
 
     let currentCalendarDate = new Date(2026, 7, 1); // August 2026
 
+    // VARIABEL UNTUK DRAG AND DROP DI KALENDER
+    let isDraggingDate = false;
+    let dragStartDateStr = null;
+    let dragEndDateStr = null;
+
+    function highlightDraggedCells() {
+      const cells = document.querySelectorAll('.calendar-day-cell');
+      let start = new Date(dragStartDateStr);
+      let end = new Date(dragEndDateStr);
+
+      // Jika diseret ke arah kiri (mundur), tukar posisinya
+      if (start > end) {
+        let temp = start;
+        start = end;
+        end = temp;
+      }
+
+      cells.forEach(cell => {
+        const cellDateStr = cell.getAttribute('data-date');
+        if (!cellDateStr) return;
+        const cellDate = new Date(cellDateStr);
+        if (cellDate >= start && cellDate <= end) {
+          cell.classList.add('drag-highlight');
+        } else {
+          cell.classList.remove('drag-highlight');
+        }
+      });
+    }
+
+    function clearHighlighting() {
+      document.querySelectorAll('.calendar-day-cell.drag-highlight').forEach(cell => {
+        cell.classList.remove('drag-highlight');
+      });
+    }
+
     const GANTT_DATES = [
       "2026-07-30", "2026-07-31",
       "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05",
@@ -2583,6 +2866,26 @@
     }
 
     function setupEventListeners() {
+      // EVENT DRAG & DROP GLOBAL
+      document.addEventListener('mouseup', () => {
+        if (isDraggingDate) {
+          isDraggingDate = false;
+
+          let start = new Date(dragStartDateStr);
+          let end = new Date(dragEndDateStr);
+          // Tukar jika ditarik mundur
+          if (start > end) {
+            let temp = dragStartDateStr;
+            dragStartDateStr = dragEndDateStr;
+            dragEndDateStr = temp;
+          }
+
+          // Membuka modal dengan default start/end date
+          openTaskModal(null, dragStartDateStr, dragEndDateStr);
+          clearHighlighting();
+        }
+      });
+
       // Tab view switching
       document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -3204,9 +3507,23 @@
         cell.appendChild(eventBlock);
       });
 
-      cell.onclick = () => {
-        openTaskModal(null, dateString);
-      };
+      // EVENT LISTENERS UNTUK DRAG AND DROP
+      cell.addEventListener('mousedown', (e) => {
+        // Abaikan drag jika mengklik balok event yang sudah ada
+        if (e.target.closest('.calendar-event-block')) return;
+
+        isDraggingDate = true;
+        dragStartDateStr = dateString;
+        dragEndDateStr = dateString;
+        highlightDraggedCells();
+      });
+
+      cell.addEventListener('mouseenter', (e) => {
+        if (isDraggingDate) {
+          dragEndDateStr = dateString;
+          highlightDraggedCells();
+        }
+      });
 
       elCalendarDays.appendChild(cell);
     }
@@ -3271,7 +3588,7 @@
        8. TASK CREATION / EDITING MODAL
        ========================================================================== */
 
-    function openTaskModal(taskId = null, defaultStartDate = null) {
+    function openTaskModal(taskId = null, defaultStartDate = null, defaultEndDate = null) {
       const form = document.getElementById("form-task");
       form.reset();
 
@@ -3316,8 +3633,10 @@
         document.getElementById("task-form-project").value = defaultProj;
 
         const todayStr = defaultStartDate || new Date().toISOString().split("T")[0];
+        const endStr = defaultEndDate || todayStr; // Terisi otomatis jika diseret
+
         document.getElementById("task-form-start-date").value = todayStr;
-        document.getElementById("task-form-end-date").value = todayStr;
+        document.getElementById("task-form-end-date").value = endStr;
 
         deleteBtn.style.display = "none";
       }
@@ -3716,3 +4035,4 @@
 </body>
 
 </html>
+```eof
