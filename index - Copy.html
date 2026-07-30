@@ -1715,14 +1715,7 @@ textarea.form-control {
  * Detects dynamic execution environment: Local vs. Google Apps Script
  */
 
-// IMPORTANT: Use a function (not const) so it checks at call time.
-// In GAS web apps, google.script.run is injected AFTER the script starts running,
-// so evaluating it immediately as a const may return false even when deployed.
-function isGAS() {
-  return (typeof google !== 'undefined' && google && google.script && google.script.run);
-}
-// Backward-compat alias used throughout the app
-var isGoogleAppsScript = false; // will be set correctly in DOMContentLoaded
+const isGoogleAppsScript = (typeof google !== 'undefined' && google.script && google.script.run);
 
 function showCustomAlert(message, title = "Informasi") {
   return new Promise((resolve) => {
@@ -2336,9 +2329,6 @@ const formSettings = document.getElementById("form-settings");
 const formTask = document.getElementById("form-task");
 
 document.addEventListener("DOMContentLoaded", () => {
-  // ✅ Set GAS detection HERE - google.script.run is only available after page loads
-  isGoogleAppsScript = isGAS();
-
   // Init Icons
   lucide.createIcons();
   
