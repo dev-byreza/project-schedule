@@ -15,7 +15,12 @@ if (!connectionString) {
     }
   });
 } else {
-  const pool = new pg.Pool({ connectionString });
+  const pool = new pg.Pool({ 
+    connectionString,
+    max: 2,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 1000
+  });
   const adapter = new PrismaPg(pool);
 
   const globalForPrisma = globalThis as unknown as {

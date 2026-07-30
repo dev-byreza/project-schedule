@@ -2304,29 +2304,34 @@ function finishLoadAndRender() {
   renderAllViews();
 }
 
-async function saveTasksToLocalStorage() {
+function saveTasksToLocalStorage() {
   localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-  try {
-    const res = await fetch('/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tasks: appTasks,
-        projects: appProjects,
-        categories: appCategories,
-        assignees: appAssignees
-      })
-    });
+  localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+  localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
+  localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  return fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: controller.signal,
+    body: JSON.stringify({
+      tasks: appTasks,
+      projects: appProjects,
+      categories: appCategories,
+      assignees: appAssignees
+    })
+  }).then(res => {
+    clearTimeout(timeoutId);
     if (!res.ok) {
-      const errBody = await res.text();
-      console.error('Cloud save failed:', res.status, errBody);
-      throw new Error(`Server error ${res.status}: ${errBody}`);
+      console.warn("Cloud sync response warning:", res.status);
     }
-    return true;
-  } catch (err) {
-    console.error('Cloud sync error:', err);
-    throw err;
-  }
+  }).catch(err => {
+    clearTimeout(timeoutId);
+    console.warn("Cloud sync background notification:", err);
+  });
 }
 
 function updateTaskStatusDirectly(taskId, newStatus) {
@@ -3249,9 +3254,11 @@ function openTaskModal(taskId = null, defaultStartDate = null) {
 
 function closeTaskModal() {
   modalTask.classList.remove("active");
+  const saveBtn = document.getElementById("btn-save-task");
+  if (saveBtn) { saveBtn.textContent = "Simpan"; saveBtn.disabled = false; }
 }
 
-async function saveTaskForm(e) {
+function saveTaskForm(e) {
   e.preventDefault();
   
   const id = document.getElementById("task-form-id").value;
@@ -3284,19 +3291,12 @@ async function saveTaskForm(e) {
     appTasks.push({ id: newId, title, category, assignee, startDate, endDate, status, notes, project });
   }
 
-  // Show saving indicator
-  const saveBtn = document.getElementById("btn-save-task");
-  const origText = saveBtn ? saveBtn.textContent : "Simpan";
-  if (saveBtn) { saveBtn.textContent = "Menyimpan..."; saveBtn.disabled = true; }
+  // Instantly close modal & render UI (Optimistic UI)
+  closeTaskModal();
+  renderAllViews();
 
-  try {
-    await saveTasksToLocalStorage();
-    closeTaskModal();
-    renderAllViews();
-  } catch (err) {
-    alert("Gagal menyimpan ke database cloud. Cek koneksi internet Anda dan coba lagi.\n\nDetail: " + err.message);
-    if (saveBtn) { saveBtn.textContent = origText; saveBtn.disabled = false; }
-  }
+  // Background Cloud Sync
+  saveTasksToLocalStorage();
 }
 
 async function deleteTask() {
