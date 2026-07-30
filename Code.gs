@@ -15,6 +15,7 @@ function doGet() {
 /**
  * Called by frontend on startup to ensure the database (Spreadsheet) is ready.
  * Creates and seeds the spreadsheet if it doesn't exist yet.
+ * Also seeds initial data if sheets are empty.
  */
 function setupDatabase() {
   try {
@@ -22,11 +23,51 @@ function setupDatabase() {
     if (!ss) {
       throw new Error("Could not access or create the spreadsheet database.");
     }
+
     // Ensure all required sheets exist
-    getTasksSheet(ss);
-    getCategoriesSheet(ss);
-    getProjectsSheet(ss);
-    getAssigneesSheet(ss);
+    var tasksSheet = getTasksSheet(ss);
+    var categoriesSheet = getCategoriesSheet(ss);
+    var projectsSheet = getProjectsSheet(ss);
+    var assigneesSheet = getAssigneesSheet(ss);
+
+    // Seed Projects if empty
+    if (projectsSheet.getLastRow() <= 1) {
+      var initProjects = getInitialProjects();
+      for (var p = 0; p < initProjects.length; p++) {
+        projectsSheet.appendRow([initProjects[p]]);
+      }
+    }
+
+    // Seed Categories if empty
+    if (categoriesSheet.getLastRow() <= 1) {
+      var initCats = getInitialCategories();
+      for (var c = 0; c < initCats.length; c++) {
+        categoriesSheet.appendRow([initCats[c]]);
+      }
+    }
+
+    // Seed Assignees if empty
+    if (assigneesSheet.getLastRow() <= 1) {
+      var initAssignees = getInitialAssigneesList();
+      for (var a = 0; a < initAssignees.length; a++) {
+        assigneesSheet.appendRow([initAssignees[a].id, initAssignees[a].name, initAssignees[a].color]);
+      }
+    }
+
+    // Seed Tasks if empty
+    if (tasksSheet.getLastRow() <= 1) {
+      var initTasks = getInitialTasks();
+      var defaultProject = getInitialProjects()[0];
+      for (var t = 0; t < initTasks.length; t++) {
+        var task = initTasks[t];
+        tasksSheet.appendRow([
+          task.id, task.title, task.category, task.assignee,
+          task.startDate, task.endDate, task.status, task.notes || "",
+          defaultProject
+        ]);
+      }
+    }
+
     return true;
   } catch(e) {
     Logger.log("setupDatabase error: " + e.message);
@@ -205,7 +246,14 @@ function getTasks() {
   var sheet = getTasksSheet(ss);
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
-    return [];
+    // Sheet is empty - return initial seed data
+    return getInitialTasks().map(function(t) {
+      return {
+        id: t.id, title: t.title, category: t.category,
+        assignee: t.assignee, startDate: t.startDate, endDate: t.endDate,
+        status: t.status, notes: t.notes || "", project: getInitialProjects()[0]
+      };
+    });
   }
   
   var lastCol = sheet.getLastColumn();
@@ -300,7 +348,7 @@ function getCategories() {
   var sheet = getCategoriesSheet(ss);
   var lastRow = sheet.getLastRow();
   if (lastRow <= 1) {
-    return [];
+    return getInitialCategories();
   }
   
   var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
