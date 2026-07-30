@@ -2366,6 +2366,11 @@ function migrateDataFrom32To33() {
       task.project = "Wisuda XXXIII";
       migrated = true;
     }
+    // Fix tasks with blank or unknown project
+    if (!task.project || task.project.trim() === "" || !appProjects.includes(task.project)) {
+      task.project = appProjects.length > 0 ? appProjects[0] : "Wisuda XXXIII";
+      migrated = true;
+    }
     if (task.category === "Wisuda XXXII") {
       task.category = "Wisuda XXXIII";
       migrated = true;
@@ -2517,16 +2522,12 @@ function updateThemeIcon(theme) {
 
 function getProjectTasks() {
   return appTasks.filter(task => {
-    var matchesProject = true;
-    if (currentProject !== "__all__") {
-      let taskProj = task.project;
-      const defaultProj = appProjects.length > 0 ? appProjects[0] : "Wisuda XXXIII";
-      if (!taskProj || !appProjects.includes(taskProj)) {
-        taskProj = defaultProj;
-      }
-      matchesProject = taskProj === currentProject;
-    }
-    return matchesProject;
+    if (currentProject === "__all__") return true;
+    const defaultProj = appProjects.length > 0 ? appProjects[0] : currentProject;
+    const taskProj = (task.project && task.project.trim() !== "" && appProjects.includes(task.project))
+      ? task.project
+      : defaultProj; // treat blank/unknown project as belonging to the first/default project
+    return taskProj === currentProject;
   });
 }
 
