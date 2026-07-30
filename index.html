@@ -2304,18 +2304,29 @@ function finishLoadAndRender() {
   renderAllViews();
 }
 
-function saveTasksToLocalStorage() {
+async function saveTasksToLocalStorage() {
   localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-  return fetch('/api/data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tasks: appTasks,
-      projects: appProjects,
-      categories: appCategories,
-      assignees: appAssignees
-    })
-  }).catch(err => console.error("Cloud sync error:", err));
+  try {
+    const res = await fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tasks: appTasks,
+        projects: appProjects,
+        categories: appCategories,
+        assignees: appAssignees
+      })
+    });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('Cloud save failed:', res.status, errBody);
+      throw new Error(`Server error ${res.status}: ${errBody}`);
+    }
+    return true;
+  } catch (err) {
+    console.error('Cloud sync error:', err);
+    throw err;
+  }
 }
 
 function updateTaskStatusDirectly(taskId, newStatus) {
@@ -3240,7 +3251,7 @@ function closeTaskModal() {
   modalTask.classList.remove("active");
 }
 
-function saveTaskForm(e) {
+async function saveTaskForm(e) {
   e.preventDefault();
   
   const id = document.getElementById("task-form-id").value;
@@ -3273,9 +3284,19 @@ function saveTaskForm(e) {
     appTasks.push({ id: newId, title, category, assignee, startDate, endDate, status, notes, project });
   }
 
-  saveTasksToLocalStorage();
-  closeTaskModal();
-  renderAllViews();
+  // Show saving indicator
+  const saveBtn = document.getElementById("btn-save-task");
+  const origText = saveBtn ? saveBtn.textContent : "Simpan";
+  if (saveBtn) { saveBtn.textContent = "Menyimpan..."; saveBtn.disabled = true; }
+
+  try {
+    await saveTasksToLocalStorage();
+    closeTaskModal();
+    renderAllViews();
+  } catch (err) {
+    alert("Gagal menyimpan ke database cloud. Cek koneksi internet Anda dan coba lagi.\n\nDetail: " + err.message);
+    if (saveBtn) { saveBtn.textContent = origText; saveBtn.disabled = false; }
+  }
 }
 
 async function deleteTask() {
@@ -3284,9 +3305,13 @@ async function deleteTask() {
 
   if (await showCustomConfirm("Apakah Anda yakin ingin menghapus tugas ini?")) {
     appTasks = appTasks.filter(t => t.id !== id);
-    saveTasksToLocalStorage();
-    closeTaskModal();
-    renderAllViews();
+    try {
+      await saveTasksToLocalStorage();
+      closeTaskModal();
+      renderAllViews();
+    } catch (err) {
+      alert("Gagal menghapus tugas dari database cloud: " + err.message);
+    }
   }
 }
 
