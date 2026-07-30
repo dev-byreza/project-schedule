@@ -235,6 +235,7 @@ function getTasks() {
 function saveTasks(tasks) {
   var ss = getSpreadsheet();
   if (!ss) return false;
+  if (!tasks || !Array.isArray(tasks)) return false;
   
   var sheet = getTasksSheet(ss);
   var lastRow = sheet.getLastRow();
@@ -647,9 +648,9 @@ function getInitialTasks() {
 }
 
 function saveAllData(tasks, categories, projects, assignees) {
-  saveTasks(tasks);
-  saveCategories(categories);
-  saveProjects(projects);
-  saveAssignees(assignees);
+  if (tasks !== undefined && tasks !== null) saveTasks(tasks);
+  if (categories !== undefined && categories !== null) saveCategories(categories);
+  if (projects !== undefined && projects !== null) saveProjects(projects);
+  if (assignees !== undefined && assignees !== null) saveAssignees(assignees);
   return true;
 }
