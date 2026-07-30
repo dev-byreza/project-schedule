@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
@@ -7,6 +6,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   const scope = 'https://www.googleapis.com/auth/calendar.events';
 
   if (!clientId) {
+    console.error('GOOGLE_CLIENT_ID environment variable is missing on Vercel serverless runtime');
     return res.status(500).json({ error: 'GOOGLE_CLIENT_ID is missing in Vercel environment variables.' });
   }
 

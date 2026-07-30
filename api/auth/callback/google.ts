@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -15,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://project.devbyreza.cloud/api/auth/callback/google';
 
   if (!clientId || !clientSecret) {
-    console.error('Missing Google OAuth environment variables');
+    console.error('Missing Google OAuth environment variables on Vercel');
     return res.redirect(302, '/?gcal_error=' + encodeURIComponent('Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET environment variable on Vercel'));
   }
 
