@@ -2334,7 +2334,8 @@ function loadFallbackAndRender() {
 
   const savedTasks = localStorage.getItem("project_schedule_tasks");
   if (savedTasks) {
-    appTasks = JSON.parse(savedTasks);
+    localStorage.removeItem("project_schedule_tasks");
+    appTasks = [];
   } else {
     appTasks = [...INITIAL_TASKS];
   }
