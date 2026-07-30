@@ -2323,35 +2323,14 @@ function initData() {
 }
 
 function loadFallbackAndRender() {
-  const savedProjects = localStorage.getItem("project_schedule_projects");
-  if (savedProjects) {
-    appProjects = JSON.parse(savedProjects);
-  } else {
-    appProjects = ["Wisuda XXXIII"];
-  }
-
-  const savedAssignees = localStorage.getItem("project_schedule_assignees");
-  if (savedAssignees) {
-    appAssignees = JSON.parse(savedAssignees);
-  } else {
-    appAssignees = [
-      { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
-      { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
-      { id: "timmhs", name: "TIM MHS", color: "#10b981" }
-    ];
-  }
-
-  const savedTasks = localStorage.getItem("project_schedule_tasks");
-  if (savedTasks) {
-    appTasks = JSON.parse(savedTasks);
-  } else {
-    appTasks = [];
-  }
-
-  const savedCategories = localStorage.getItem("project_schedule_categories");
-  if (savedCategories) {
-    appCategories = JSON.parse(savedCategories);
-  }
+  appProjects = ["Wisuda XXXIII"];
+  appAssignees = [
+    { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
+    { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
+    { id: "timmhs", name: "TIM MHS", color: "#10b981" }
+  ];
+  appTasks = [];
+  appCategories = [...INITIAL_CATEGORIES];
 
   if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
     currentProject = appProjects[0];
