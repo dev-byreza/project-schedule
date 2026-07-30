@@ -63,51 +63,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST') {
       const { tasks, categories, projects, assignees } = req.body || {};
 
+      if (projects && Array.isArray(projects)) {
+        for (const p of projects) {
+          if (p && typeof p === 'string') {
+            await prisma.project.upsert({
+              where: { name: p },
+              update: {},
+              create: { name: p },
+            });
+          }
+        }
+      }
+
+      if (categories && Array.isArray(categories)) {
+        for (const c of categories) {
+          if (c && typeof c === 'string') {
+            await prisma.category.upsert({
+              where: { name: c },
+              update: {},
+              create: { name: c },
+            });
+          }
+        }
+      }
+
+      if (assignees && Array.isArray(assignees)) {
+        for (const a of assignees) {
+          if (a && a.id && a.name) {
+            await prisma.assignee.upsert({
+              where: { id: a.id },
+              update: { name: a.name, color: a.color || '#3b82f6' },
+              create: { id: a.id, name: a.name, color: a.color || '#3b82f6' },
+            });
+          }
+        }
+      }
+
       if (tasks && Array.isArray(tasks)) {
         await prisma.task.deleteMany({});
         if (tasks.length > 0) {
           await prisma.task.createMany({
             data: tasks.map((t: any) => ({
-              id: t.id,
-              title: t.title,
-              category: t.category,
-              assignee: t.assignee,
+              id: t.id || 'task-' + Math.random().toString(36).substr(2, 9),
+              title: t.title || 'Tugas Tanpa Judul',
+              category: t.category || 'Paket Wisudawan',
+              assignee: t.assignee || 'reza',
               startDate: t.startDate,
               endDate: t.endDate,
-              status: t.status,
+              status: t.status || 'todo',
               notes: t.notes || '',
               project: t.project || 'Wisuda XXXIII',
-            })),
-          });
-        }
-      }
-
-      if (projects && Array.isArray(projects)) {
-        await prisma.project.deleteMany({});
-        if (projects.length > 0) {
-          await prisma.project.createMany({
-            data: projects.map((p: string) => ({ name: p })),
-          });
-        }
-      }
-
-      if (categories && Array.isArray(categories)) {
-        await prisma.category.deleteMany({});
-        if (categories.length > 0) {
-          await prisma.category.createMany({
-            data: categories.map((c: string) => ({ name: c })),
-          });
-        }
-      }
-
-      if (assignees && Array.isArray(assignees)) {
-        await prisma.assignee.deleteMany({});
-        if (assignees.length > 0) {
-          await prisma.assignee.createMany({
-            data: assignees.map((a: any) => ({
-              id: a.id,
-              name: a.name,
-              color: a.color || '#3b82f6',
             })),
           });
         }
