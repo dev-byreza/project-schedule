@@ -2349,10 +2349,10 @@ function finishLoadAndRender() {
 
 function saveTasksToLocalStorage() {
   if (isGoogleAppsScript) {
-    google.script.run.saveTasks(appTasks);
+    return google.script.run.saveTasks(appTasks);
   } else {
     localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-    fetch('/api/data', {
+    return fetch('/api/data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3657,11 +3657,12 @@ function handleICSImport(file) {
           })
           .saveAllData(appTasks, appCategories, appProjects, appAssignees);
       } else {
-        // Save to local storage
+        // Save to local storage & Cloud API
         localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
         localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
         localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
-        saveTasksToLocalStorage();
+        
+        await saveTasksToLocalStorage();
         
         populateDropdowns();
         populateProjectDropdowns();
