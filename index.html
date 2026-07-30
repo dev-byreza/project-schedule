@@ -2242,13 +2242,9 @@ function migrateDataFrom32To33() {
   }
 
   if (migrated) {
-    if (isGoogleAppsScript) {
-      google.script.run.saveAllData(appTasks, appCategories, appProjects, appAssignees);
-    } else {
-      localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-      localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
-      saveTasksToLocalStorage();
-    }
+    localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+    localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
+    saveTasksToLocalStorage();
   }
 }
 
@@ -3305,32 +3301,6 @@ function loadSettingsForm() {
   
   // Render assignees list editor dynamically
   renderAssigneesSettingsList();
-  
-  if (isGoogleAppsScript) {
-    const clientFormGroup = document.getElementById("setting-client-id").closest(".form-group");
-    const apiFormGroup = document.getElementById("setting-api-key").closest(".form-group");
-    const guideEl = document.querySelector(".setup-guide");
-    
-    if (clientFormGroup) clientFormGroup.style.display = "none";
-    if (apiFormGroup) apiFormGroup.style.display = "none";
-    if (guideEl) {
-      guideEl.innerHTML = `<strong>Info Apps Script:</strong> Aplikasi ini berjalan langsung di infrastruktur Google Apps Script. Sinkronisasi kalender menggunakan akun Google aktif Anda secara otomatis tanpa perlu Client ID atau API Key. Anda hanya perlu menyetel Calendar ID jika ingin menggunakan kalender khusus.<br><br><strong>Google Sheet Database:</strong><br><span id="db-link-container">Mencari URL spreadsheet...</span>`;
-    }
-    
-    google.script.run
-      .withSuccessHandler((url) => {
-        const container = document.getElementById("db-link-container");
-        if (container) {
-          if (url) {
-            container.innerHTML = `<a href="${url}" target="_blank" class="btn btn-accent" style="margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.8rem;"><i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Buka Google Sheet Database</a>`;
-            lucide.createIcons();
-          } else {
-            container.innerHTML = `<span style="color: #ef4444;">Gagal mengambil URL spreadsheet database.</span>`;
-          }
-        }
-      })
-      .getDatabaseUrl();
-  }
 }
 
 function renderAssigneesSettingsList() {
@@ -3368,11 +3338,6 @@ function saveSettingsForm(e) {
   const apiKey = document.getElementById("setting-api-key").value.trim();
   const calendarId = document.getElementById("setting-calendar-id").value.trim() || "primary";
 
-  if (!isGoogleAppsScript && (!clientId || !apiKey)) {
-    alert("Klien ID dan API Key tidak boleh kosong.");
-    return;
-  }
-
   // Parse updated assignees from UI
   const updatedAssignees = [];
   document.querySelectorAll(".assignee-setting-item").forEach((item) => {
@@ -3388,11 +3353,7 @@ function saveSettingsForm(e) {
   });
 
   appAssignees = updatedAssignees;
-  if (isGoogleAppsScript) {
-    google.script.run.saveAssignees(appAssignees);
-  } else {
-    localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-  }
+  localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
 
   gcalService.updateCredentials(clientId, apiKey, calendarId);
   modalSettings.classList.remove("active");
@@ -3425,37 +3386,19 @@ async function triggerGCalSync() {
   fillEl.style.width = "0%";
   detailEl.textContent = `Tugas 0 dari ${tasksToSync.length}`;
 
-  if (isGoogleAppsScript) {
-    titleEl.textContent = "Sinkronisasi ke Google Calendar (Server)...";
-    detailEl.textContent = "Sedang memproses di server Google...";
-    fillEl.style.width = "50%";
-    
-    google.script.run
-      .withSuccessHandler((result) => {
-        modalSyncProgress.classList.remove("active");
-        alert(`Sinkronisasi Selesai!\n\nBerhasil disinkronkan: ${result.successCount} tugas\nGagal: ${result.failCount} tugas`);
-      })
-      .withFailureHandler((error) => {
-        modalSyncProgress.classList.remove("active");
-        alert("Sinkronisasi gagal: " + error.message);
-      })
-      .syncTasksToGoogleCalendarServer(tasksToSync, gcalService.calendarId);
-  } else {
-    try {
-      const result = await gcalService.syncTasks(tasksToSync, (current, total, taskName) => {
-        const percentage = Math.round((current / total) * 100);
-        fillEl.style.width = `${percentage}%`;
-        titleEl.textContent = `Mengunggah: ${taskName}`;
-        detailEl.textContent = `Tugas ${current + 1} dari ${total}`;
-      });
+  try {
+    const result = await gcalService.syncTasks(tasksToSync, (current, total, taskName) => {
+      const percentage = Math.round((current / total) * 100);
+      fillEl.style.width = `${percentage}%`;
+      titleEl.textContent = `Mengunggah: ${taskName}`;
+      detailEl.textContent = `Tugas ${current + 1} dari ${total}`;
+    });
 
-      modalSyncProgress.classList.remove("active");
-      alert(`Sinkronisasi Selesai!\n\nBerhasil diekspor: ${result.successCount} tugas\nGagal: ${result.failCount} tugas`);
-    } catch (e) {
-      console.error("GCal Sync Process Failed:", e);
-      modalSyncProgress.classList.remove("active");
-      alert("Sinkronisasi gagal. Pastikan API Key / Client ID Anda valid dan Anda telah memberikan izin akses.");
-    }
+    modalSyncProgress.classList.remove("active");
+    alert(`Sinkronisasi Selesai!\n\nBerhasil diekspor: ${result.successCount} tugas\nGagal: ${result.failCount} tugas`);
+  } catch (e) {
+    console.error("GCal Sync Process Failed:", e);
+    modalSyncProgress.classList.remove("active");
   }
 }
 
