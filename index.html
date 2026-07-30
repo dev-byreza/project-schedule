@@ -2735,11 +2735,7 @@
             const trimmed = newProjName.trim();
             if (!appProjects.includes(trimmed)) {
               appProjects.push(trimmed);
-              if (isGoogleAppsScript) {
-                google.script.run.saveProjects(appProjects);
-              } else {
-                localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
-              }
+              localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
             }
             currentProject = trimmed;
           } else {
@@ -2777,11 +2773,7 @@
             const trimmed = newCatName.trim();
             if (!appCategories.includes(trimmed)) {
               appCategories.push(trimmed);
-              if (isGoogleAppsScript) {
-                google.script.run.saveCategories(appCategories);
-              } else {
-                localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
-              }
+              localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
               populateDropdowns();
             }
             e.target.value = trimmed;
@@ -2802,12 +2794,7 @@
             const color = colors[Math.floor(Math.random() * colors.length)];
 
             appAssignees.push({ id, name: trimmed, color });
-
-            if (isGoogleAppsScript) {
-              google.script.run.saveAssignees(appAssignees);
-            } else {
-              localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-            }
+            localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
 
             populateAssigneeDropdowns();
             e.target.value = id;
@@ -2829,12 +2816,7 @@
             const color = colors[Math.floor(Math.random() * colors.length)];
 
             appAssignees.push({ id, name: trimmed, color });
-
-            if (isGoogleAppsScript) {
-              google.script.run.saveAssignees(appAssignees);
-            } else {
-              localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
-            }
+            localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
 
             populateAssigneeDropdowns();
             e.target.value = id;
@@ -2882,18 +2864,14 @@
 
       // Sync Google Calendar
       document.getElementById("btn-sync-gcal").addEventListener("click", () => {
-        if (isGoogleAppsScript) {
-          triggerGCalSync();
-        } else {
-          if (!gcalService.hasCredentials()) {
-            alert("Harap atur Google API Credentials terlebih dahulu di menu Pengaturan.");
-            modalSettings.classList.add("active");
-            return;
-          }
-          gcalService.authenticate(() => {
-            triggerGCalSync();
-          });
+        if (!gcalService.hasCredentials()) {
+          alert("Harap atur Google API Credentials terlebih dahulu di menu Pengaturan.");
+          modalSettings.classList.add("active");
+          return;
         }
+        gcalService.authenticate(() => {
+          triggerGCalSync();
+        });
       });
 
       // Calendar Navigation
