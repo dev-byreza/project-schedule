@@ -2282,6 +2282,24 @@
       // Setup Event Listeners
       setupEventListeners();
 
+      // Check OAuth redirect URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const gcalToken = urlParams.get("gcal_token");
+      const gcalStatus = urlParams.get("status");
+      const gcalError = urlParams.get("gcal_error");
+
+      if (gcalToken) {
+        localStorage.setItem("gcal_access_token", gcalToken);
+        if (typeof gcalService !== "undefined" && gcalService) gcalService.accessToken = gcalToken;
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (gcalStatus === "success") {
+          setTimeout(() => triggerGCalSync(), 600);
+        }
+      } else if (gcalError) {
+        alert("Otorisasi Google Calendar dibatalkan atau gagal: " + gcalError);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       // Fetch data dynamically from GAS server or local storage
       initData();
     });
@@ -2864,14 +2882,12 @@
 
       // Sync Google Calendar
       document.getElementById("btn-sync-gcal").addEventListener("click", () => {
-        if (!gcalService.hasCredentials()) {
-          alert("Harap atur Google API Credentials terlebih dahulu di menu Pengaturan.");
-          modalSettings.classList.add("active");
-          return;
-        }
-        gcalService.authenticate(() => {
+        if (!gcalService.accessToken) {
+          // Trigger Serverless OAuth 2.0 Authorization Code Flow
+          window.location.href = "/api/auth/google";
+        } else {
           triggerGCalSync();
-        });
+        }
       });
 
       // Calendar Navigation
