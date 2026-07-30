@@ -1715,7 +1715,35 @@ textarea.form-control {
  * Detects dynamic execution environment: Local vs. Google Apps Script
  */
 
-const isGoogleAppsScript = (typeof google !== 'undefined' && google.script && google.script.run);
+// IMPORTANT: Use a function (not const) so it checks at call time.
+// In GAS web apps, google.script.run is injected AFTER the script starts running,
+// so evaluating it immediately as a const may return false even when deployed.
+function isGAS() {
+  return (typeof google !== 'undefined' && google && google.script && google.script.run);
+}
+// Backward-compat alias used throughout the app
+var isGoogleAppsScript = false; // will be set correctly in DOMContentLoaded
+
+// ============================================================
+// GAS TEMPLATE DATA INJECTION (server-side pre-loaded data)
+// ============================================================
+// When served via GAS:  the template engine replaces <?!= gasData ?> with base64 JSON
+// When opened locally:  raw string contains literal scriptlet text (not valid base64)
+//                       → atob() throws → __GAS_DATA__ stays null → localStorage fallback
+// ============================================================
+var __GAS_DATA__ = null;
+(function() {
+  try {
+    var raw = '<?!= typeof gasData !== "undefined" ? gasData : "" ?>';
+    // Valid base64 only contains A-Z a-z 0-9 + / =
+    // Locally, raw will start with '<' (not base64), so this check prevents atob() crash
+    if (raw && raw.length > 10 && /^[A-Za-z0-9+/=]+$/.test(raw.trim())) {
+      __GAS_DATA__ = JSON.parse(atob(raw.trim()));
+    }
+  } catch(e) {
+    console.warn('GAS data injection:', e.message);
+  }
+})();
 
 function showCustomAlert(message, title = "Informasi") {
   return new Promise((resolve) => {
@@ -2329,6 +2357,9 @@ const formSettings = document.getElementById("form-settings");
 const formTask = document.getElementById("form-task");
 
 document.addEventListener("DOMContentLoaded", () => {
+  // ✅ Set GAS detection HERE - google.script.run is only available after page loads
+  isGoogleAppsScript = isGAS();
+
   // Init Icons
   lucide.createIcons();
   

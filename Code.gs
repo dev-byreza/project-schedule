@@ -5,8 +5,24 @@
  */
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
+  var template = HtmlService.createTemplateFromFile('index');
+  try {
+    // Pre-load ALL data into the HTML at render time (server-side injection)
+    // This is the most reliable approach - no async calls needed for initial load
+    var data = {
+      tasks: getTasks(),
+      categories: getCategories(),
+      projects: getProjects(),
+      assignees: getAssignees(),
+      calendarId: getCalendarId() || ""
+    };
+    // Base64-encode to safely embed JSON in HTML without escaping issues
+    template.gasData = Utilities.base64Encode(JSON.stringify(data));
+  } catch(e) {
+    Logger.log("doGet data injection error: " + e.message);
+    template.gasData = "";
+  }
+  return template.evaluate()
     .setTitle('Project Schedule Dashboard')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -616,138 +632,7 @@ function getInitialAssigneesList() {
 }
 
 function getInitialTasks() {
-  return [
-    {
-      id: "task-1",
-      title: "Slide Wisudawan (Reza)",
-      category: "Paket Wisudawan",
-      assignee: "reza",
-      startDate: "2026-08-10",
-      endDate: "2026-08-11",
-      status: "in-progress",
-      notes: "Persiapan slide untuk wisudawan berprestasi."
-    },
-    {
-      id: "task-2",
-      title: "Slide Wisudawan (Tim MHS)",
-      category: "Paket Wisudawan",
-      assignee: "timmhs",
-      startDate: "2026-08-12",
-      endDate: "2026-08-14",
-      status: "todo",
-      notes: "Finalisasi slide dan review bersama panitia."
-    },
-    {
-      id: "task-3",
-      title: "Plakat Wisudawan Terbaik",
-      category: "Paket Wisudawan",
-      assignee: "reza",
-      startDate: "2026-07-30",
-      endDate: "2026-07-30",
-      status: "done",
-      notes: "Desain plakat acrylic wisudawan terbaik."
-    },
-    {
-      id: "task-4",
-      title: "Selempang Wisudawan Terbaik",
-      category: "Paket Wisudawan",
-      assignee: "reza",
-      startDate: "2026-07-30",
-      endDate: "2026-07-30",
-      status: "done",
-      notes: "Pemesanan dan desain selempang bordir emas."
-    },
-    {
-      id: "task-5",
-      title: "Undangan Orasi Ilmiah",
-      category: "Orasi Ilmiah",
-      assignee: "annas",
-      startDate: "2026-08-10",
-      endDate: "2026-08-10",
-      status: "todo",
-      notes: "Distribusi undangan digital untuk orasi ilmiah."
-    },
-    {
-      id: "task-6",
-      title: "Backdrop Orasi (Reza)",
-      category: "Orasi Ilmiah",
-      assignee: "reza",
-      startDate: "2026-08-05",
-      endDate: "2026-08-05",
-      status: "in-progress",
-      notes: "Desain awal backdrop panggung orasi ilmiah."
-    },
-    {
-      id: "task-7",
-      title: "Backdrop Orasi (Kak Annas)",
-      category: "Orasi Ilmiah",
-      assignee: "annas",
-      startDate: "2026-08-06",
-      endDate: "2026-08-06",
-      status: "todo",
-      notes: "Review desain and pengiriman file cetak backdrop."
-    },
-    {
-      id: "task-8",
-      title: "Undangan Wisuda XXXIII",
-      category: "Wisuda XXXIII",
-      assignee: "reza",
-      startDate: "2026-08-12",
-      endDate: "2026-08-14",
-      status: "todo",
-      notes: "Desain dan distribusi undangan utama wisuda."
-    },
-    {
-      id: "task-9",
-      title: "Video Background Wisuda",
-      category: "Wisuda XXXIII",
-      assignee: "reza",
-      startDate: "2026-07-31",
-      endDate: "2026-08-10",
-      status: "in-progress",
-      notes: "Editing loop background video untuk LED screen utama."
-    },
-    {
-      id: "task-10",
-      title: "Spanduk Selamat Datang",
-      category: "Wisuda XXXIII",
-      assignee: "annas",
-      startDate: "2026-08-13",
-      endDate: "2026-08-13",
-      status: "todo",
-      notes: "Desain spanduk gerbang utama lokasi wisuda."
-    },
-    {
-      id: "task-11",
-      title: "Spanduk Foto Booth",
-      category: "Wisuda XXXIII",
-      assignee: "annas",
-      startDate: "2026-08-12",
-      endDate: "2026-08-12",
-      status: "todo",
-      notes: "Desain backdrop area photo booth wisudawan."
-    },
-    {
-      id: "task-12",
-      title: "Stand Banner TA",
-      category: "Wisuda XXXIII",
-      assignee: "timmhs",
-      startDate: "2026-08-03",
-      endDate: "2026-08-07",
-      status: "todo",
-      notes: "Desain dan layout stand banner Tugas Akhir."
-    },
-    {
-      id: "task-13",
-      title: "Video Sejarah Singkat Poliwako",
-      category: "Wisuda XXXIII",
-      assignee: "timmhs",
-      startDate: "2026-08-03",
-      endDate: "2026-08-07",
-      status: "todo",
-      notes: "Pembuatan bumper video sejarah perkembangan kampus Poliwako."
-    }
-  ];
+  return [];
 }
 
 function saveAllData(tasks, categories, projects, assignees) {
