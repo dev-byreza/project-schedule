@@ -830,8 +830,6 @@
       grid-auto-rows: minmax(100px, auto);
       border-top: 1px solid var(--border-color);
       border-left: 1px solid var(--border-color);
-      user-select: none;
-      /* Cegah text ter-select saat di drag */
     }
 
     .calendar-day-cell {
@@ -843,8 +841,6 @@
       gap: 0.25rem;
       background-color: var(--bg-secondary);
       transition: var(--transition-fast);
-      cursor: crosshair;
-      /* Kursor agar terkesan bisa ditarik */
     }
 
     .calendar-day-cell.other-month {
@@ -867,8 +863,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      pointer-events: none;
-      /* Cegah klik mengenai tanggal angka */
     }
 
     .calendar-day-cell.today .calendar-day-number {
@@ -893,19 +887,11 @@
       box-shadow: var(--shadow-sm);
       transition: var(--transition-fast);
       color: #0f172a;
-      z-index: 10;
     }
 
     .calendar-event-block:hover {
       filter: brightness(1.1);
       transform: translateX(1px);
-    }
-
-    /* Efek Highlight untuk Drag & Drop Kalender */
-    .calendar-day-cell.drag-highlight {
-      background-color: rgba(99, 102, 241, 0.15) !important;
-      border: 1px dashed var(--accent-color);
-      box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.1);
     }
 
     /* ==========================================================================
@@ -1285,9 +1271,7 @@
     .quick-add-block::before {
       content: '';
       position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
+      left: 0; top: 0; bottom: 0;
       width: 3px;
       background: linear-gradient(180deg, #7c3aed, #10b981);
       border-radius: 3px 0 0 3px;
@@ -1295,7 +1279,7 @@
 
     .quick-add-block:focus-within {
       border-color: rgba(124, 58, 237, 0.55);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), 0 4px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), 0 4px 20px rgba(0,0,0,0.2);
     }
 
     .quick-add-label {
@@ -1318,8 +1302,8 @@
     .quick-add-title {
       flex: 1;
       min-width: 180px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 0.5rem;
       color: var(--text-primary);
       font-size: 0.875rem;
@@ -1339,8 +1323,8 @@
     }
 
     .quick-add-select {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 0.5rem;
       color: var(--text-primary);
       font-size: 0.8rem;
@@ -1356,8 +1340,8 @@
     }
 
     .quick-add-date {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 0.5rem;
       color: var(--text-primary);
       font-size: 0.78rem;
@@ -1429,15 +1413,8 @@
     }
 
     @keyframes successFlash {
-      0% {
-        border-color: rgba(16, 185, 129, 0.8);
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-      }
-
-      100% {
-        border-color: rgba(124, 58, 237, 0.25);
-        box-shadow: none;
-      }
+      0%   { border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+      100% { border-color: rgba(124, 58, 237, 0.25); box-shadow: none; }
     }
 
     @media (max-width: 768px) {
@@ -1446,13 +1423,9 @@
         align-items: stretch;
         gap: 0.55rem;
       }
-
-      .quick-add-title,
-      .quick-add-select,
-      .quick-add-date {
+      .quick-add-title, .quick-add-select, .quick-add-date {
         width: 100%;
       }
-
       .btn-quick-add {
         width: 100%;
         justify-content: center;
@@ -1540,8 +1513,13 @@
         TAMBAH CEPAT
       </span>
 
-      <input type="text" class="quick-add-title" id="quick-add-title" placeholder="✏️  Nama tugas baru... (tekan Enter)"
-        autocomplete="off" />
+      <input
+        type="text"
+        class="quick-add-title"
+        id="quick-add-title"
+        placeholder="✏️  Nama tugas baru... (tekan Enter)"
+        autocomplete="off"
+      />
 
       <select class="quick-add-select" id="quick-add-category">
         <!-- Populated dynamically -->
@@ -2473,41 +2451,6 @@
 
     let currentCalendarDate = new Date(2026, 7, 1); // August 2026
 
-    // VARIABEL UNTUK DRAG AND DROP DI KALENDER
-    let isDraggingDate = false;
-    let dragStartDateStr = null;
-    let dragEndDateStr = null;
-
-    function highlightDraggedCells() {
-      const cells = document.querySelectorAll('.calendar-day-cell');
-      let start = new Date(dragStartDateStr);
-      let end = new Date(dragEndDateStr);
-
-      // Jika diseret ke arah kiri (mundur), tukar posisinya
-      if (start > end) {
-        let temp = start;
-        start = end;
-        end = temp;
-      }
-
-      cells.forEach(cell => {
-        const cellDateStr = cell.getAttribute('data-date');
-        if (!cellDateStr) return;
-        const cellDate = new Date(cellDateStr);
-        if (cellDate >= start && cellDate <= end) {
-          cell.classList.add('drag-highlight');
-        } else {
-          cell.classList.remove('drag-highlight');
-        }
-      });
-    }
-
-    function clearHighlighting() {
-      document.querySelectorAll('.calendar-day-cell.drag-highlight').forEach(cell => {
-        cell.classList.remove('drag-highlight');
-      });
-    }
-
     const GANTT_DATES = [
       "2026-07-30", "2026-07-31",
       "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05",
@@ -2866,26 +2809,6 @@
     }
 
     function setupEventListeners() {
-      // EVENT DRAG & DROP GLOBAL
-      document.addEventListener('mouseup', () => {
-        if (isDraggingDate) {
-          isDraggingDate = false;
-
-          let start = new Date(dragStartDateStr);
-          let end = new Date(dragEndDateStr);
-          // Tukar jika ditarik mundur
-          if (start > end) {
-            let temp = dragStartDateStr;
-            dragStartDateStr = dragEndDateStr;
-            dragEndDateStr = temp;
-          }
-
-          // Membuka modal dengan default start/end date
-          openTaskModal(null, dragStartDateStr, dragEndDateStr);
-          clearHighlighting();
-        }
-      });
-
       // Tab view switching
       document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -3507,23 +3430,9 @@
         cell.appendChild(eventBlock);
       });
 
-      // EVENT LISTENERS UNTUK DRAG AND DROP
-      cell.addEventListener('mousedown', (e) => {
-        // Abaikan drag jika mengklik balok event yang sudah ada
-        if (e.target.closest('.calendar-event-block')) return;
-
-        isDraggingDate = true;
-        dragStartDateStr = dateString;
-        dragEndDateStr = dateString;
-        highlightDraggedCells();
-      });
-
-      cell.addEventListener('mouseenter', (e) => {
-        if (isDraggingDate) {
-          dragEndDateStr = dateString;
-          highlightDraggedCells();
-        }
-      });
+      cell.onclick = () => {
+        openTaskModal(null, dateString);
+      };
 
       elCalendarDays.appendChild(cell);
     }
@@ -3588,7 +3497,7 @@
        8. TASK CREATION / EDITING MODAL
        ========================================================================== */
 
-    function openTaskModal(taskId = null, defaultStartDate = null, defaultEndDate = null) {
+    function openTaskModal(taskId = null, defaultStartDate = null) {
       const form = document.getElementById("form-task");
       form.reset();
 
@@ -3633,10 +3542,8 @@
         document.getElementById("task-form-project").value = defaultProj;
 
         const todayStr = defaultStartDate || new Date().toISOString().split("T")[0];
-        const endStr = defaultEndDate || todayStr; // Terisi otomatis jika diseret
-
         document.getElementById("task-form-start-date").value = todayStr;
-        document.getElementById("task-form-end-date").value = endStr;
+        document.getElementById("task-form-end-date").value = todayStr;
 
         deleteBtn.style.display = "none";
       }
@@ -4035,4 +3942,3 @@
 </body>
 
 </html>
-```eof
