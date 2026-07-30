@@ -1,6 +1,5 @@
+import 'dotenv/config';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const DEFAULT_CLIENT_ID = '813658703373-j7gcu4v0ijpr930d8j3hhpcjdt9qnrhr.apps.googleusercontent.com';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const code = req.query.code as string;
@@ -11,13 +10,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.redirect(302, '/?gcal_error=' + encodeURIComponent(error || 'cancelled'));
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID || DEFAULT_CLIENT_ID;
+  const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://project.devbyreza.cloud/api/auth/callback/google';
 
-  if (!clientSecret) {
-    console.error('Missing GOOGLE_CLIENT_SECRET environment variable on Vercel');
-    return res.redirect(302, '/?gcal_error=' + encodeURIComponent('Missing GOOGLE_CLIENT_SECRET environment variable on Vercel'));
+  if (!clientId || !clientSecret) {
+    console.error('Missing Google OAuth environment variables');
+    return res.redirect(302, '/?gcal_error=' + encodeURIComponent('Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET environment variable on Vercel'));
   }
 
   try {
