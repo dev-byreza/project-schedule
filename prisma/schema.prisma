@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma Schema — Project Schedule Dashboard
+// Database: Supabase PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Project {
@@ -24,14 +23,14 @@ model Category {
 }
 
 model Assignee {
-  id        String   @id @default(uuid())
+  id        String   @id
   name      String
   color     String   @default("#3b82f6")
   createdAt DateTime @default(now())
 }
 
 model Task {
-  id        String   @id @default(uuid())
+  id        String   @id
   title     String
   category  String
   assignee  String
@@ -43,5 +42,3 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
-
