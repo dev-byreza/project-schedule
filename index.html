@@ -2867,11 +2867,16 @@
       }).then(res => {
         clearTimeout(timeoutId);
         if (!res.ok) {
-          console.warn("Cloud sync response warning:", res.status);
+          // Throw so callers can catch this
+          return res.text().then(text => {
+            throw new Error(`Server responded with status ${res.status}: ${text}`);
+          });
         }
+        return res.json();
       }).catch(err => {
         clearTimeout(timeoutId);
-        console.warn("Cloud sync background notification:", err);
+        // Re-throw so callers know the cloud save failed
+        throw err;
       });
     }
 
@@ -3967,7 +3972,7 @@
         try {
           const parsedEvents = parseICS(text);
           if (parsedEvents.length === 0) {
-            alert("Tidak ada tugas/event yang ditemukan di dalam file ICS.");
+            showToast('Tidak ada event ditemukan di file ICS.', 'error');
             return;
           }
 
@@ -3979,7 +3984,6 @@
 
           let importMode = "merge";
           if (!mergeConfirm) {
-            // If they click Cancel, double check if they want to overwrite or cancel completely
             const overwriteConfirm = await showCustomConfirm(
               "Apakah Anda yakin ingin MENIMPA seluruh tugas saat ini dengan isi file ICS ini? Semua tugas saat ini akan terhapus.",
               "Konfirmasi Hapus & Ganti"
@@ -3987,7 +3991,6 @@
             if (overwriteConfirm) {
               importMode = "overwrite";
             } else {
-              // Cancel import entirely
               return;
             }
           }
@@ -4000,7 +4003,6 @@
             const startDate = parseICSDate(evt.dtstart) || new Date().toISOString().split("T")[0];
             const endDate = evt.dtend ? getActualEndDate(parseICSDate(evt.dtend)) : startDate;
 
-            // Parse description
             let category = appCategories[0] || "Paket Wisudawan";
             let assigneeId = appAssignees[0]?.id || "reza";
             let status = "todo";
@@ -4008,7 +4010,7 @@
               status = "done";
             }
             let notes = "";
-            let project = currentProject;
+            let project = (currentProject !== "__all__") ? currentProject : (appProjects[0] || "Wisuda XXXIII");
 
             if (evt.description) {
               const lines = evt.description.split("\n");
@@ -4028,7 +4030,6 @@
                     if (found) {
                       assigneeId = found.id;
                     } else {
-                      // Create dynamic assignee
                       const id = "assignee-" + Date.now() + Math.floor(Math.random() * 1000);
                       const colors = ["#4f46e5", "#f59e0b", "#06b6d4", "#10b981", "#ec4899", "#8b5cf6", "#ef4444", "#14b8a6"];
                       const color = colors[Math.floor(Math.random() * colors.length)];
@@ -4072,29 +4073,40 @@
           if (importMode === "overwrite") {
             appTasks = newTasks;
           } else {
-            // Merge mode: append new tasks
             appTasks = appTasks.concat(newTasks);
           }
 
-          // Save to local storage & Cloud API
+          // Save to localStorage first (fast)
           localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
           localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
           localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
 
-          await saveTasksToLocalStorage();
+          // Show saving state
+          showToast(`⏳ Menyimpan ${newTasks.length} tugas ke database...`, 'info', 8000);
 
-          populateDropdowns();
-          populateProjectDropdowns();
-          populateAssigneeDropdowns();
-          renderAllViews();
-          alert(`Sukses mengimpor ${newTasks.length} tugas!`);
+          try {
+            await saveTasksToLocalStorage();
+            populateDropdowns();
+            populateProjectDropdowns();
+            populateAssigneeDropdowns();
+            renderAllViews();
+            showToast(`✅ Berhasil mengimpor ${newTasks.length} tugas dan disimpan ke database.`, 'success');
+          } catch (saveErr) {
+            console.error("Database save error after ICS import:", saveErr);
+            // Render the view anyway (data is in memory + localStorage)
+            populateDropdowns();
+            populateProjectDropdowns();
+            populateAssigneeDropdowns();
+            renderAllViews();
+            showToast(`⚠️ ${newTasks.length} tugas diimpor tapi GAGAL disimpan ke database cloud. Data akan hilang saat reload. Cek koneksi internet Anda.`, 'error', 8000);
+          }
         } catch (err) {
           console.error(err);
-          alert("Gagal membaca atau memproses file ICS: " + err.message);
+          showToast('Gagal membaca atau memproses file ICS: ' + err.message, 'error');
         }
       };
       reader.onerror = function () {
-        alert("Gagal membaca file.");
+        showToast('Gagal membaca file ICS.', 'error');
       };
       reader.readAsText(file);
     }
