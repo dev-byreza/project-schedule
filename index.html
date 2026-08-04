@@ -1251,6 +1251,444 @@
       }
     }
 
+    /* ==========================================================================
+       ENHANCED: Dot Pattern Background
+       ========================================================================== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(99, 102, 241, 0.045) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    [data-theme="light"] body::before {
+      background-image: radial-gradient(rgba(79, 70, 229, 0.03) 1px, transparent 1px);
+    }
+
+    .app-wrapper { position: relative; z-index: 1; }
+
+    /* ==========================================================================
+       ENHANCED: Header
+       ========================================================================== */
+    header { position: relative; }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-color) 40%, #8b5cf6 60%, transparent 100%);
+      opacity: 0.5;
+      border: none;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #10b981;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.18rem 0.55rem;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+      margin-left: 0.65rem;
+      vertical-align: middle;
+    }
+
+    .live-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: livePulse 1.6s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.75); }
+    }
+
+    /* ==========================================================================
+       ENHANCED: Stat Cards
+       ========================================================================== */
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.07), transparent 70%);
+      pointer-events: none;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 36px rgba(99, 102, 241, 0.18), 0 4px 12px rgba(0,0,0,0.18);
+    }
+
+    .stat-card.card-total   { border-left: 3px solid var(--accent-color); }
+    .stat-card.card-completion { border-left: 3px solid #10b981; }
+    .stat-card.card-todo    { border-left: 3px solid #64748b; }
+    .stat-card.card-running { border-left: 3px solid #3b82f6; }
+    .stat-card.card-done    { border-left: 3px solid #10b981; }
+
+    .stat-icon-wrapper {
+      background: linear-gradient(135deg, var(--bg-tertiary), rgba(99, 102, 241, 0.1));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stat-card:hover .stat-icon-wrapper {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    @keyframes shimmerText {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .stat-info .stat-value {
+      background: linear-gradient(90deg, var(--text-primary) 20%, rgba(139,92,246,0.9) 50%, var(--text-primary) 80%);
+      background-size: 250% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmerText 4s linear infinite;
+    }
+
+    /* Stagger load animation */
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-card { animation: cardFadeIn 0.5s ease backwards; }
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.12s; }
+    .stat-card:nth-child(3) { animation-delay: 0.19s; }
+    .stat-card:nth-child(4) { animation-delay: 0.26s; }
+    .stat-card:nth-child(5) { animation-delay: 0.33s; }
+
+    .gantt-card, .calendar-card, .list-card {
+      animation: cardFadeIn 0.5s ease 0.1s backwards;
+    }
+
+    /* ==========================================================================
+       ENHANCED: View Tabs
+       ========================================================================== */
+    .tab-btn {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      border-radius: inherit;
+    }
+
+    .tab-btn:hover::before { opacity: 1; }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4), 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* ==========================================================================
+       ENHANCED: Gantt
+       ========================================================================== */
+    .gantt-bar-wrapper {
+      border-radius: 6px !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .gantt-bar-wrapper:hover {
+      filter: brightness(1.2);
+      transform: scaleY(1.12);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.25), 0 6px 20px rgba(0,0,0,0.3);
+    }
+
+    /* TODAY column indicator */
+    .date-column-header.today-col {
+      background: rgba(99, 102, 241, 0.14) !important;
+      color: var(--accent-color) !important;
+      font-weight: 800 !important;
+      border-left: 2px solid var(--accent-color) !important;
+      border-right: 2px solid var(--accent-color) !important;
+    }
+
+    .gantt-date-cell.today-col {
+      background-color: rgba(99, 102, 241, 0.04) !important;
+      border-left: 1px dashed rgba(99, 102, 241, 0.3) !important;
+      border-right: 1px dashed rgba(99, 102, 241, 0.3) !important;
+    }
+
+    /* Category row gradient */
+    .gantt-row-category td {
+      background: linear-gradient(90deg, rgba(5, 20, 50, 0.98), var(--header-category-bg), rgba(5, 20, 50, 0.98)) !important;
+      letter-spacing: 0.1em;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    [data-theme="light"] .gantt-row-category td {
+      background: linear-gradient(90deg, #c7d2fe, var(--header-category-bg), #c7d2fe) !important;
+      text-shadow: none;
+    }
+
+    /* Legend redesign */
+    .legend-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      transition: var(--transition-fast);
+    }
+
+    .legend-item:hover {
+      border-color: var(--text-muted);
+      transform: translateY(-1px);
+    }
+
+    .legend-color-box {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ==========================================================================
+       ENHANCED: Kanban
+       ========================================================================== */
+    .kanban-column {
+      border-top: 3px solid transparent;
+      animation: cardFadeIn 0.5s ease backwards;
+    }
+
+    .kanban-column:nth-child(1) { animation-delay: 0.1s; }
+    .kanban-column:nth-child(2) { animation-delay: 0.2s; }
+    .kanban-column:nth-child(3) { animation-delay: 0.3s; }
+
+    .col-todo         { border-top-color: var(--color-todo); }
+    .col-in-progress  { border-top-color: var(--color-in-progress); }
+    .col-done         { border-top-color: var(--color-done); }
+
+    .kanban-column-header {
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1rem;
+    }
+
+    .col-todo .kanban-column-badge {
+      background: rgba(100, 116, 139, 0.2); color: #94a3b8;
+    }
+    .col-in-progress .kanban-column-badge {
+      background: rgba(59, 130, 246, 0.2); color: #60a5fa;
+    }
+    .col-done .kanban-column-badge {
+      background: rgba(16, 185, 129, 0.2); color: #34d399;
+    }
+
+    .kanban-card {
+      border: 1px solid var(--border-color);
+      border-top: 3px solid var(--card-accent, var(--accent-color));
+      background: linear-gradient(160deg, var(--bg-secondary) 0%, rgba(30, 38, 64, 0.55) 100%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    .kanban-card::before { display: none; }
+
+    .kanban-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--card-accent, var(--accent-color));
+      box-shadow: 0 10px 28px rgba(0,0,0,0.22), 0 0 0 1px var(--card-accent, var(--accent-color));
+    }
+
+    [data-theme="light"] .kanban-card {
+      background: linear-gradient(160deg, #ffffff 0%, #f1f5f9 100%);
+    }
+
+    /* ==========================================================================
+       ENHANCED: Calendar
+       ========================================================================== */
+    .calendar-day-cell.today {
+      background-color: rgba(99, 102, 241, 0.05);
+      box-shadow: inset 0 0 0 1.5px rgba(99, 102, 241, 0.3);
+    }
+
+    .calendar-day-cell.today .calendar-day-number {
+      background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      animation: todayPulse 2.5s ease infinite;
+    }
+
+    @keyframes todayPulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+      50%       { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.08); }
+    }
+
+    .calendar-event-block {
+      border-radius: 5px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.2rem 0.45rem;
+    }
+
+    .calendar-event-block:hover {
+      filter: brightness(1.18);
+      transform: translateX(2px);
+    }
+
+    /* ==========================================================================
+       ENHANCED: List / Table
+       ========================================================================== */
+    .list-table-container { overflow-x: auto; }
+
+    .list-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background-color: var(--bg-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.73rem;
+      box-shadow: 0 1px 0 var(--border-color);
+    }
+
+    .list-row:nth-child(even) {
+      background-color: rgba(255,255,255,0.012);
+    }
+
+    [data-theme="light"] .list-row:nth-child(even) {
+      background-color: rgba(0,0,0,0.018);
+    }
+
+    .list-row:hover {
+      background-color: rgba(99, 102, 241, 0.045) !important;
+    }
+
+    .list-row td:first-child {
+      border-left: 3px solid transparent;
+      transition: border-left-color 0.2s ease;
+    }
+
+    .list-row.status-todo td:first-child        { border-left-color: var(--color-todo); }
+    .list-row.status-in-progress td:first-child  { border-left-color: var(--color-in-progress); }
+    .list-row.status-done td:first-child         { border-left-color: var(--color-done); }
+
+    /* ==========================================================================
+       ENHANCED: Buttons
+       ========================================================================== */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-hover) 0%, #7c3aed 100%);
+      box-shadow: 0 6px 22px rgba(99, 102, 241, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .search-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      width: 280px;
+    }
+
+    /* ==========================================================================
+       TOAST NOTIFICATION SYSTEM
+       ========================================================================== */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1.1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 0.85rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
+      min-width: 270px;
+      max-width: 360px;
+      pointer-events: all;
+      animation: toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      backdrop-filter: blur(12px);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .toast.toast-hiding {
+      animation: toastSlideOut 0.25s ease forwards;
+    }
+
+    @keyframes toastSlideIn {
+      from { opacity: 0; transform: translateX(110%) scale(0.9); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes toastSlideOut {
+      from { opacity: 1; transform: translateX(0) scale(1); }
+      to   { opacity: 0; transform: translateX(110%) scale(0.9); }
+    }
+
+    .toast-icon {
+      width: 2rem; height: 2rem;
+      border-radius: 0.5rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .toast-success { border-left: 3px solid #10b981; }
+    .toast-error   { border-left: 3px solid #ef4444; }
+    .toast-info    { border-left: 3px solid var(--accent-color); }
+    .toast-warning { border-left: 3px solid #f59e0b; }
+
+    .toast-success .toast-icon { background: rgba(16,185,129,0.15); color: #10b981; }
+    .toast-error   .toast-icon { background: rgba(239,68,68,0.15);  color: #ef4444; }
+    .toast-info    .toast-icon { background: rgba(99,102,241,0.15); color: var(--accent-color); }
+    .toast-warning .toast-icon { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+    .toast-message { flex: 1; color: var(--text-primary); line-height: 1.4; }
+
+    .toast-close {
+      background: none; border: none;
+      color: var(--text-muted); cursor: pointer;
+      padding: 0.2rem; font-size: 1rem; line-height: 1;
+      flex-shrink: 0; transition: color 0.15s ease;
+      border-radius: 4px;
+    }
+
+    .toast-close:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+
+    [data-theme="light"] .toast { background: #ffffff; }
 
   </style>
 </head>
@@ -1264,8 +1702,9 @@
         <h1>
           <i data-lucide="calendar-days"></i>
           Project Schedule Dashboard
+          <span class="live-badge">LIVE</span>
         </h1>
-        <p>Integrasi Penjadwalan Proyek & Google Calendar</p>
+        <p>Integrasi Penjadwalan Proyek &amp; Google Calendar</p>
       </div>
       <div class="header-actions">
         <!-- Settings Button -->
@@ -1299,7 +1738,7 @@
     <!-- Stats Dashboard Overview -->
     <section class="stats-dashboard">
       <!-- Total Tasks Card -->
-      <div class="stat-card">
+      <div class="stat-card card-total">
         <div class="stat-icon-wrapper">
           <i data-lucide="clipboard-list"></i>
         </div>
@@ -1309,7 +1748,7 @@
         </div>
       </div>
       <!-- Completion Rate Card -->
-      <div class="stat-card">
+      <div class="stat-card card-completion">
         <div class="stat-icon-wrapper" style="color: #10b981;">
           <i data-lucide="check-circle-2"></i>
         </div>
@@ -2949,15 +3388,18 @@
 
     function renderGanttHeaders() {
       elGanttDateHeaderRow.innerHTML = "";
+      const todayStr = new Date().toISOString().split('T')[0];
 
       GANTT_DATES.forEach(dateStr => {
         const d = new Date(dateStr);
         const dayNum = d.getDate();
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const weekendClass = isWeekend ? "weekend" : "";
+        const todayClass = dateStr === todayStr ? "today-col" : "";
+        const todayMark = dateStr === todayStr ? " ●" : "";
 
         elGanttDateHeaderRow.innerHTML += `
-      <th class="date-column-header ${weekendClass}">${dayNum}</th>
+      <th class="date-column-header ${weekendClass} ${todayClass}">${dayNum}${todayMark}</th>
     `;
       });
     }
@@ -3023,10 +3465,12 @@
           let rowHtml = `<tr class="gantt-row-task">`;
           rowHtml += `<td class="gantt-task-desc-cell" onclick="openTaskModal('${task.id}')" title="Klik untuk edit tugas">${task.title}</td>`;
 
+          const todayStrGantt = new Date().toISOString().split('T')[0];
           for (let i = 0; i < GANTT_DATES.length; i++) {
             const currentDate = GANTT_DATES[i];
             const isWeekend = new Date(currentDate).getDay() === 0 || new Date(currentDate).getDay() === 6;
             const weekendClass = isWeekend ? "weekend" : "";
+            const todayCellClass = currentDate === todayStrGantt ? "today-col" : "";
 
             if (currentDate === task.startDate) {
               let spanCount = 0;
@@ -3038,16 +3482,19 @@
               }
 
               const assigneeData = getAssigneeData(task.assignee);
+              // Build a short text label if bar is wide enough
+              const barLabel = spanCount >= 3 ? `<span class="gantt-bar-content">${task.title}</span>` : '';
 
               rowHtml += `
-            <td class="gantt-date-cell ${weekendClass}" colspan="${spanCount}">
-              <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="Penanggung Jawab: ${assigneeData.name}">
+            <td class="gantt-date-cell ${weekendClass} ${todayCellClass}" colspan="${spanCount}">
+              <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
+                ${barLabel}
               </div>
             </td>
           `;
               i += (spanCount - 1);
             } else {
-              rowHtml += `<td class="gantt-date-cell ${weekendClass}"></td>`;
+              rowHtml += `<td class="gantt-date-cell ${weekendClass} ${todayCellClass}"></td>`;
             }
           }
 
@@ -3251,7 +3698,7 @@
         };
 
         elListTbody.innerHTML += `
-      <tr class="list-row">
+      <tr class="list-row status-${task.status}">
         <td style="font-weight: 600;">${task.title}</td>
         <td>${task.category}</td>
         <td><span class="badge" style="${assigneeData.textStyle}">${assigneeData.name}</span></td>
@@ -3376,8 +3823,10 @@
         await saveTasksToLocalStorage();
         closeTaskModal();
         renderAllViews();
+        const isEdit = !!id;
+        showToast(isEdit ? `✏️ Tugas "${title}" berhasil diperbarui.` : `✅ Tugas "${title}" berhasil ditambahkan.`, isEdit ? 'info' : 'success');
       } catch (err) {
-        alert("Gagal menyimpan ke database cloud. Cek koneksi internet Anda dan coba lagi.\n\nDetail: " + err.message);
+        showToast('Gagal menyimpan ke database. Cek koneksi Anda.', 'error');
         if (saveBtn) { saveBtn.textContent = origText; saveBtn.disabled = false; }
       }
     }
@@ -3392,8 +3841,9 @@
           await saveTasksToLocalStorage();
           closeTaskModal();
           renderAllViews();
+          showToast('🗑️ Tugas berhasil dihapus.', 'warning');
         } catch (err) {
-          alert("Gagal menghapus tugas dari database cloud: " + err.message);
+          showToast('Gagal menghapus tugas dari database.', 'error');
         }
       }
     }
@@ -3715,7 +4165,42 @@
       const d = String(date.getDate()).padStart(2, "0");
       return `${y}-${m}-${d}`;
     }
+
+    /* ============================================================
+       TOAST NOTIFICATION FUNCTION
+       ============================================================ */
+    function showToast(message, type = 'success', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const iconMap = {
+        success: '✓',
+        error:   '✕',
+        info:    'i',
+        warning: '!'
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">${iconMap[type] || 'i'}</div>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close" onclick="this.closest('.toast').remove()" title="Tutup">&times;</button>
+      `;
+
+      container.appendChild(toast);
+
+      // Auto-dismiss
+      setTimeout(() => {
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
   </script>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
 
 </body>
 
