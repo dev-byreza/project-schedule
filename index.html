@@ -641,6 +641,61 @@
       z-index: 25;
     }
 
+    .gantt-bar-handle {
+      width: 14px;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      cursor: ew-resize !important;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s ease;
+    }
+
+    .gantt-bar-handle::after {
+      content: '';
+      width: 3px;
+      height: 50%;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 2px;
+      opacity: 0.4;
+      transition: opacity 0.15s ease, background-color 0.15s ease, height 0.15s ease;
+    }
+
+    .gantt-bar-wrapper:hover .gantt-bar-handle::after {
+      opacity: 0.85;
+    }
+
+    .gantt-bar-handle:hover::after {
+      opacity: 1 !important;
+      background: #ffffff;
+      height: 75%;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+    }
+
+    .gantt-bar-handle.handle-left {
+      left: 0;
+      border-top-left-radius: 0.4rem;
+      border-bottom-left-radius: 0.4rem;
+    }
+
+    .gantt-bar-handle.handle-right {
+      right: 0;
+      border-top-right-radius: 0.4rem;
+      border-bottom-right-radius: 0.4rem;
+    }
+
+    .gantt-bar-wrapper.gantt-bar-dragging {
+      cursor: grabbing !important;
+      opacity: 0.88 !important;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.7), 0 0 0 2px #ffffff !important;
+      z-index: 100 !important;
+      pointer-events: none !important;
+      transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1), width 0.08s cubic-bezier(0.2, 0, 0, 1) !important;
+    }
+
     .btn-add-cat-task {
       background: rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.3);
@@ -4037,15 +4092,19 @@
         const colOffset = Math.round(dx / CELL_WIDTH);
         const snappedDx = colOffset * CELL_WIDTH;
 
-        // MAGNETIC SNAP VISUAL FEEDBACK
+        // FRAME-BY-FRAME (PER 1 FRAME 57px) RESIZE & MOVE
         if (ganttInteraction.mode === 'move') {
           ganttInteraction.barEl.style.transform = `translateX(${snappedDx}px)`;
         } else if (ganttInteraction.mode === 'resize-end') {
           const newW = Math.max(CELL_WIDTH, ganttInteraction.originalWidth + snappedDx);
           ganttInteraction.barEl.style.width = `${newW}px`;
         } else if (ganttInteraction.mode === 'resize-start') {
-          const newW = Math.max(CELL_WIDTH, ganttInteraction.originalWidth - snappedDx);
-          ganttInteraction.barEl.style.transform = `translateX(${snappedDx}px)`;
+          const maxShiftCols = Math.floor((ganttInteraction.originalWidth - CELL_WIDTH) / CELL_WIDTH);
+          const safeColOffset = Math.min(maxShiftCols, colOffset);
+          const safeSnappedDx = safeColOffset * CELL_WIDTH;
+          const newW = Math.max(CELL_WIDTH, ganttInteraction.originalWidth - safeSnappedDx);
+
+          ganttInteraction.barEl.style.transform = `translateX(${safeSnappedDx}px)`;
           ganttInteraction.barEl.style.width = `${newW}px`;
         }
 
