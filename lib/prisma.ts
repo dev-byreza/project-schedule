@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -20,8 +22,15 @@ if (!connectionString) {
     }
   });
 } else {
-  // Prisma v7 automatically resolves DATABASE_URL from prisma.config.ts
-  prismaInstance = global.prisma ?? new PrismaClient();
+  const pool = new pg.Pool({
+    connectionString,
+    max: 5,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 5000
+  });
+  const adapter = new PrismaPg(pool);
+
+  prismaInstance = global.prisma ?? new PrismaClient({ adapter });
 
   if (process.env.NODE_ENV !== 'production') {
     global.prisma = prismaInstance;
