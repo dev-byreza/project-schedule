@@ -3706,13 +3706,54 @@
         });
       });
 
-      // Auto-scroll to TODAY column or task date range on initial load
+      scrollToInitialGanttPosition();
+    }
+
+    let hasInitialGanttScrolled = false;
+
+    function scrollToInitialGanttPosition(force = false) {
+      if (hasInitialGanttScrolled && !force) return;
+
       setTimeout(() => {
         const container = document.querySelector(".gantt-scrollable-container");
-        const todayCol = document.querySelector(".date-column-header.today-col");
-        if (container && todayCol) {
-          const scrollPos = todayCol.offsetLeft - container.clientWidth / 2;
+        if (!container) return;
+
+        const filteredTasks = getFilteredTasks();
+        let targetDateStr = null;
+
+        if (filteredTasks.length > 0) {
+          // Find the earliest start date among active tasks
+          const startDates = filteredTasks.map(t => t.startDate).filter(Boolean).sort();
+          if (startDates.length > 0) {
+            const earliestStr = startDates[0];
+            const earliestDate = new Date(earliestStr);
+            // Scroll back 7 days prior to earliest task start date (not from Month 1)
+            earliestDate.setDate(earliestDate.getDate() - 7);
+            targetDateStr = earliestDate.toISOString().split('T')[0];
+          }
+        }
+
+        // Fallback to TODAY if no tasks exist
+        if (!targetDateStr) {
+          targetDateStr = new Date().toISOString().split('T')[0];
+        }
+
+        let targetHeader = document.querySelector(`.date-column-header[data-date="${targetDateStr}"]`);
+
+        if (!targetHeader) {
+          const headers = document.querySelectorAll(".date-column-header[data-date]");
+          for (const h of headers) {
+            if (h.getAttribute("data-date") >= targetDateStr) {
+              targetHeader = h;
+              break;
+            }
+          }
+        }
+
+        if (targetHeader) {
+          const scrollPos = targetHeader.offsetLeft - 300; // Account for sticky Job Description column width
           container.scrollTo({ left: Math.max(0, scrollPos), behavior: 'smooth' });
+          hasInitialGanttScrolled = true;
         }
       }, 150);
     }
