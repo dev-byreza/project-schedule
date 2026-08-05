@@ -108,30 +108,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { tasks, categories, projects, assignees } = req.body || {};
 
       if (projects && Array.isArray(projects)) {
-        for (const p of projects) {
-          if (p && typeof p === 'string') {
-            await prisma.project.upsert({
-              where: { name: p },
-              update: {},
-              create: { id: 'proj-' + Math.random().toString(36).substr(2, 9), name: p },
-            });
-          }
+        const validProjectNames = projects.filter(p => typeof p === 'string');
+        if (validProjectNames.length > 0) {
+          await prisma.project.deleteMany({
+            where: { name: { notIn: validProjectNames } }
+          });
+        }
+        for (const p of validProjectNames) {
+          await prisma.project.upsert({
+            where: { name: p },
+            update: {},
+            create: { id: 'proj-' + Math.random().toString(36).substr(2, 9), name: p },
+          });
         }
       }
 
       if (categories && Array.isArray(categories)) {
-        for (const c of categories) {
-          if (c && typeof c === 'string') {
-            await prisma.category.upsert({
-              where: { name: c },
-              update: {},
-              create: { id: 'cat-' + Math.random().toString(36).substr(2, 9), name: c },
-            });
-          }
+        const validCategoryNames = categories.filter(c => typeof c === 'string');
+        if (validCategoryNames.length > 0) {
+          await prisma.category.deleteMany({
+            where: { name: { notIn: validCategoryNames } }
+          });
+        }
+        for (const c of validCategoryNames) {
+          await prisma.category.upsert({
+            where: { name: c },
+            update: {},
+            create: { id: 'cat-' + Math.random().toString(36).substr(2, 9), name: c },
+          });
         }
       }
 
       if (assignees && Array.isArray(assignees)) {
+        const validAssigneeIds = assignees.filter(a => a && a.id).map(a => a.id);
+        if (validAssigneeIds.length > 0) {
+          await prisma.assignee.deleteMany({
+            where: { id: { notIn: validAssigneeIds } }
+          });
+        }
         for (const a of assignees) {
           if (a && a.id && a.name) {
             await prisma.assignee.upsert({

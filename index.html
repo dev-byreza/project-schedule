@@ -660,51 +660,6 @@
       filter: brightness(1.1);
     }
 
-    .gantt-bar-wrapper.draggable-bar {
-      cursor: grab;
-      user-select: none;
-      box-shadow: 0 0 0 2px var(--accent-color), var(--shadow-md);
-    }
-
-    .gantt-bar-wrapper.draggable-bar:active {
-      cursor: grabbing;
-    }
-
-    .gantt-resize-handle {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 10px;
-      background: rgba(255, 255, 255, 0.75);
-      z-index: 15;
-      opacity: 0.85;
-      transition: background-color 0.15s ease, opacity 0.15s ease;
-    }
-
-    .gantt-resize-handle:hover {
-      background: #ffffff;
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.9);
-    }
-
-    .gantt-resize-handle.handle-left {
-      left: 0;
-      border-top-left-radius: 4px;
-      border-bottom-left-radius: 4px;
-      cursor: w-resize;
-    }
-
-    .gantt-resize-handle.handle-right {
-      right: 0;
-      border-top-right-radius: 4px;
-      border-bottom-right-radius: 4px;
-      cursor: e-resize;
-    }
-
-    .gantt-date-cell.draw-selection-active {
-      background-color: rgba(16, 185, 129, 0.3) !important;
-      border: 1px dashed #10b981 !important;
-    }
-
     .gantt-bar-content {
       font-size: 0.75rem;
       font-weight: 700;
@@ -1922,11 +1877,6 @@
         <button class="btn btn-primary" id="btn-add-task">
           <i data-lucide="plus"></i>
           Tambah Tugas
-        </button>
-        <!-- Toggle Mode Edit Button -->
-        <button class="btn btn-secondary" id="btn-toggle-edit-mode" style="gap: 0.4rem; font-weight: 700; transition: all 0.2s ease;">
-          <i data-lucide="edit-3"></i>
-          <span id="label-toggle-edit-mode">Mode Edit Timeline</span>
         </button>
       </div>
     </section>
@@ -3406,13 +3356,8 @@
         updateThemeIcon(nextTheme);
       });
 
-      // Task Modal & Edit Mode Handlers
+      // Task Modal Handlers
       document.getElementById("btn-add-task").addEventListener("click", () => openTaskModal());
-      const btnToggleEdit = document.getElementById("btn-toggle-edit-mode");
-      if (btnToggleEdit) {
-        btnToggleEdit.addEventListener("click", toggleEditMode);
-      }
-      setupGanttDragInteractions();
       document.getElementById("btn-close-task").addEventListener("click", closeTaskModal);
       document.getElementById("btn-cancel-task").addEventListener("click", closeTaskModal);
       document.getElementById("btn-save-task").addEventListener("click", saveTaskForm);
@@ -3744,21 +3689,15 @@
                 spanSelectedClass = "has-selected-date";
               }
 
-              const resizeHandles = isEditModeActive ? `
-                <div class="gantt-resize-handle handle-left" data-task-id="${task.id}" data-action="resize-left" title="Tarik untuk mengubah tanggal mulai"></div>
-                <div class="gantt-resize-handle handle-right" data-task-id="${task.id}" data-action="resize-right" title="Tarik untuk mengubah tanggal selesai"></div>
-              ` : '';
-
               rowHtml += `
-            <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}" data-date="${currentDate}" data-category="${cat}">
-              <div class="gantt-bar-wrapper ${isEditModeActive ? 'draggable-bar' : ''}" style="${assigneeData.bgStyle}" data-task-id="${task.id}" onclick="${isEditModeActive ? '' : `openTaskModal('${task.id}')`}" title="${task.title} — ${assigneeData.name}">
-                ${resizeHandles}
+            <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}">
+              <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
               </div>
             </td>
           `;
               i += (spanCount - 1);
             } else {
-              rowHtml += `<td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass}" data-date="${currentDate}" data-category="${cat}"></td>`;
+              rowHtml += `<td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass}"></td>`;
             }
           }
 
@@ -3807,205 +3746,6 @@
           hasInitialGanttScrolled = true;
         }
       }, 100);
-    }
-
-    /* ==========================================================================
-       GANTT INTERACTIVE EDIT MODE & DRAG ENGINE
-       ========================================================================== */
-
-    let isEditModeActive = false;
-    let activeDragState = null;
-
-    function toggleEditMode() {
-      isEditModeActive = !isEditModeActive;
-      const btn = document.getElementById("btn-toggle-edit-mode");
-      const label = document.getElementById("label-toggle-edit-mode");
-      const ganttCard = document.querySelector(".gantt-card");
-
-      if (isEditModeActive) {
-        if (btn) {
-          btn.style.backgroundColor = "#f59e0b";
-          btn.style.borderColor = "#d97706";
-          btn.style.color = "#ffffff";
-          btn.style.boxShadow = "0 0 12px rgba(245, 158, 11, 0.4)";
-        }
-        if (label) label.textContent = "Selesai Edit";
-        if (ganttCard) ganttCard.classList.add("edit-mode-active");
-
-        showToast(`✏️ Mode Edit Timeline Aktif: Drag bar tugas untuk memindahkan, tarik ujung bar (resize) untuk perpanjang/perpendek, atau drag di sel kosong untuk buat tugas baru.`, 'warning');
-      } else {
-        if (btn) {
-          btn.style.backgroundColor = "";
-          btn.style.borderColor = "";
-          btn.style.color = "";
-          btn.style.boxShadow = "";
-        }
-        if (label) label.textContent = "Mode Edit Timeline";
-        if (ganttCard) ganttCard.classList.remove("edit-mode-active");
-
-        showToast(`🔒 Mode Edit Timeline Dinonaktifkan.`, 'info');
-      }
-
-      renderGanttView();
-    }
-
-    function setupGanttDragInteractions() {
-      const table = document.getElementById("gantt-table");
-      if (!table) return;
-
-      table.addEventListener("mousedown", (e) => {
-        if (!isEditModeActive) return;
-
-        const resizeHandle = e.target.closest(".gantt-resize-handle");
-        if (resizeHandle) {
-          e.preventDefault();
-          e.stopPropagation();
-          const action = resizeHandle.getAttribute("data-action");
-          const taskId = resizeHandle.getAttribute("data-task-id");
-          const task = appTasks.find(t => t.id === taskId);
-          if (!task) return;
-
-          activeDragState = {
-            type: action,
-            taskId: task.id,
-            initialX: e.clientX,
-            startDate: task.startDate,
-            endDate: task.endDate
-          };
-          return;
-        }
-
-        const bar = e.target.closest(".gantt-bar-wrapper");
-        if (bar && bar.classList.contains("draggable-bar")) {
-          e.preventDefault();
-          e.stopPropagation();
-          const taskId = bar.getAttribute("data-task-id");
-          const task = appTasks.find(t => t.id === taskId);
-          if (!task) return;
-
-          const start = new Date(task.startDate);
-          const end = new Date(task.endDate);
-          const duration = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
-          activeDragState = {
-            type: 'move',
-            taskId: task.id,
-            initialX: e.clientX,
-            initialStartDate: task.startDate,
-            initialEndDate: task.endDate,
-            duration: duration,
-            startDate: task.startDate,
-            endDate: task.endDate
-          };
-          return;
-        }
-
-        const dateCell = e.target.closest(".gantt-date-cell");
-        if (dateCell && !bar) {
-          const date = dateCell.getAttribute("data-date");
-          const category = dateCell.getAttribute("data-category");
-          if (date && category) {
-            e.preventDefault();
-            activeDragState = {
-              type: 'draw',
-              category: category,
-              startDate: date,
-              endDate: date
-            };
-            dateCell.classList.add("draw-selection-active");
-          }
-        }
-      });
-
-      window.addEventListener("mousemove", (e) => {
-        if (!activeDragState) return;
-
-        const cellUnderMouse = document.elementFromPoint(e.clientX, e.clientY)?.closest(".gantt-date-cell");
-        const dateUnderMouse = cellUnderMouse ? cellUnderMouse.getAttribute("data-date") : null;
-
-        if (activeDragState.type === 'draw') {
-          if (dateUnderMouse) {
-            activeDragState.endDate = dateUnderMouse;
-            const minD = activeDragState.startDate <= dateUnderMouse ? activeDragState.startDate : dateUnderMouse;
-            const maxD = activeDragState.startDate <= dateUnderMouse ? dateUnderMouse : activeDragState.startDate;
-
-            document.querySelectorAll(".gantt-date-cell").forEach(cell => {
-              const d = cell.getAttribute("data-date");
-              const c = cell.getAttribute("data-category");
-              if (c === activeDragState.category && d && d >= minD && d <= maxD) {
-                cell.classList.add("draw-selection-active");
-              } else {
-                cell.classList.remove("draw-selection-active");
-              }
-            });
-          }
-        } else if (activeDragState.type === 'resize-left') {
-          if (dateUnderMouse && dateUnderMouse <= activeDragState.endDate) {
-            activeDragState.startDate = dateUnderMouse;
-          }
-        } else if (activeDragState.type === 'resize-right') {
-          if (dateUnderMouse && dateUnderMouse >= activeDragState.startDate) {
-            activeDragState.endDate = dateUnderMouse;
-          }
-        } else if (activeDragState.type === 'move') {
-          if (dateUnderMouse) {
-            const deltaX = e.clientX - activeDragState.initialX;
-            const colShift = Math.round(deltaX / 38);
-
-            const initStart = new Date(activeDragState.initialStartDate);
-            initStart.setDate(initStart.getDate() + colShift);
-            const newStartStr = initStart.toISOString().split('T')[0];
-
-            const initEnd = new Date(initStart);
-            initEnd.setDate(initEnd.getDate() + (activeDragState.duration - 1));
-            const newEndStr = initEnd.toISOString().split('T')[0];
-
-            if (GANTT_DATES.includes(newStartStr) && GANTT_DATES.includes(newEndStr)) {
-              activeDragState.startDate = newStartStr;
-              activeDragState.endDate = newEndStr;
-            }
-          }
-        }
-      });
-
-      window.addEventListener("mouseup", async () => {
-        if (!activeDragState) return;
-
-        const state = activeDragState;
-        activeDragState = null;
-
-        document.querySelectorAll(".gantt-date-cell").forEach(c => {
-          c.classList.remove("draw-selection-active", "drag-over-target");
-        });
-
-        if (state.type === 'draw') {
-          const minD = state.startDate <= state.endDate ? state.startDate : state.endDate;
-          const maxD = state.startDate <= state.endDate ? state.endDate : state.startDate;
-          openTaskModal(null, minD, state.category, maxD);
-          return;
-        }
-
-        const task = appTasks.find(t => t.id === state.taskId);
-        if (!task) return;
-
-        if (state.type === 'move' || state.type === 'resize-left' || state.type === 'resize-right') {
-          const changed = task.startDate !== state.startDate || task.endDate !== state.endDate;
-          if (changed) {
-            task.startDate = state.startDate;
-            task.endDate = state.endDate;
-
-            localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
-            renderGanttView();
-            showToast(`↔️ Tanggal tugas "${task.title}" diperbarui (${task.startDate} s/d ${task.endDate}).`, 'success');
-
-            try {
-              await saveTasksToLocalStorage();
-            } catch (err) {
-              console.warn("Cloud sync error after drag:", err);
-            }
-          }
-        }
-      });
     }
 
     /* ==========================================================================
