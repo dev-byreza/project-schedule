@@ -4075,11 +4075,6 @@
 
     async function handleGanttInteractionMouseUp(e) {
       const barEl = ganttInteraction.barEl || document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
-      if (barEl) {
-        barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
-        barEl.style.transform = "";
-        barEl.style.width = "";
-      }
       document.body.style.cursor = "";
       document.querySelectorAll(".drag-target-highlight").forEach(el => el.classList.remove("drag-target-highlight"));
 
@@ -4123,18 +4118,38 @@
           task.startDate = newStart;
           task.endDate = newEnd;
 
+          // 1. Render view SYNCHRONOUSLY to lock the box in its new date cell with zero jump back!
+          renderAllViews();
+
+          // 2. Save synchronously to localStorage
+          localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+          showToast(`📅 Tanggal tugas "${task.title}" diperbarui: ${newStart} s/d ${newEnd}.`, 'success');
+
+          // 3. Save asynchronously to cloud database in background
           try {
             await saveTasksToLocalStorage();
-            renderAllViews();
-            showToast(`📅 Tanggal tugas "${task.title}" diperbarui: ${newStart} s/d ${newEnd}.`, 'success');
           } catch (err) {
-            showToast('Gagal memperbarui tanggal tugas.', 'error');
+            console.error("Cloud sync error after drag:", err);
           }
         } else {
+          if (barEl) {
+            barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
+            barEl.style.transform = "";
+            barEl.style.width = "";
+          }
           renderAllViews();
         }
       } else if (!ganttInteraction.hasDragged && ganttInteraction.taskId) {
+        if (barEl) {
+          barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
+          barEl.style.transform = "";
+          barEl.style.width = "";
+        }
         openTaskModal(ganttInteraction.taskId);
+      } else if (barEl) {
+        barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
+        barEl.style.transform = "";
+        barEl.style.width = "";
       }
 
       ganttInteraction.mode = null;
