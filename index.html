@@ -595,6 +595,39 @@
       z-index: 5;
     }
 
+    .btn-add-cat-task {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      padding: 0.2rem 0.65rem;
+      border-radius: 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+      margin-left: 1rem;
+      pointer-events: auto;
+    }
+
+    .btn-add-cat-task:hover {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+    }
+
+    .gantt-date-cell.empty-cell-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .gantt-date-cell.empty-cell-clickable:hover {
+      background-color: rgba(99, 102, 241, 0.25) !important;
+      box-shadow: inset 0 0 0 1px var(--accent-color);
+    }
+
     .gantt-row-task {
       height: 2.75rem;
       transition: background-color 0.2s ease;
@@ -3658,21 +3691,23 @@
 
       Object.keys(tasksByCategory).forEach(cat => {
         const catTasks = tasksByCategory[cat];
-        if (catTasks.length === 0) return;
 
         elGanttTbody.innerHTML += `
       <tr class="gantt-row-category">
         <td colspan="${GANTT_DATES.length + 1}">
           <div class="gantt-category-sticky-header">
             <span>${cat.toUpperCase()}</span>
+            <button type="button" onclick="openTaskModal(null, null, '${cat}')" class="btn-add-cat-task" title="Tambah tugas baru di kategori ${cat}">
+              <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i> + Tambah Tugas
+            </button>
           </div>
         </td>
       </tr>
     `;
 
-        catTasks.forEach(task => {
-          let rowHtml = `<tr class="gantt-row-task">`;
-          rowHtml += `<td class="gantt-task-desc-cell" onclick="openTaskModal('${task.id}')" title="Klik untuk edit tugas">${task.title}</td>`;
+        if (catTasks.length === 0) {
+          let emptyRowHtml = `<tr class="gantt-row-task gantt-row-empty">`;
+          emptyRowHtml += `<td class="gantt-task-desc-cell empty-cat-label" onclick="openTaskModal(null, null, '${cat}')" style="cursor: pointer; color: var(--text-muted); font-style: italic;" title="Klik untuk tambah tugas di ${cat}">+ Tambah tugas baru...</td>`;
 
           const todayStrGantt = new Date().toISOString().split('T')[0];
           for (let i = 0; i < GANTT_DATES.length; i++) {
@@ -3682,38 +3717,57 @@
             const todayCellClass = currentDate === todayStrGantt ? "today-col" : "";
             const selectedCellClass = currentDate === selectedGanttDate ? "selected-col" : "";
 
-            if (currentDate === task.startDate) {
-              let spanCount = 0;
-              let tempIdx = i;
-
-              while (tempIdx < GANTT_DATES.length && GANTT_DATES[tempIdx] <= task.endDate) {
-                spanCount++;
-                tempIdx++;
-              }
-
-              const assigneeData = getAssigneeData(task.assignee);
-
-              let spanSelectedClass = "";
-              if (selectedGanttDate && task.startDate <= selectedGanttDate && selectedGanttDate <= task.endDate) {
-                spanSelectedClass = "has-selected-date";
-              }
-
-              rowHtml += `
-            <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}">
-              <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
-              </div>
-            </td>
-          `;
-              i += (spanCount - 1);
-            } else {
-              rowHtml += `<td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass}"></td>`;
-            }
+            emptyRowHtml += `<td class="gantt-date-cell empty-cell-clickable ${weekendClass} ${todayCellClass} ${selectedCellClass}" onclick="openTaskModal(null, '${currentDate}', '${cat}')" title="Klik untuk buat tugas baru di tanggal ${currentDate} (${cat})"></td>`;
           }
+          emptyRowHtml += `</tr>`;
+          elGanttTbody.innerHTML += emptyRowHtml;
+        } else {
+          catTasks.forEach(task => {
+            let rowHtml = `<tr class="gantt-row-task">`;
+            rowHtml += `<td class="gantt-task-desc-cell" onclick="openTaskModal('${task.id}')" title="Klik untuk edit tugas">${task.title}</td>`;
 
-          rowHtml += `</tr>`;
-          elGanttTbody.innerHTML += rowHtml;
-        });
+            const todayStrGantt = new Date().toISOString().split('T')[0];
+            for (let i = 0; i < GANTT_DATES.length; i++) {
+              const currentDate = GANTT_DATES[i];
+              const isWeekend = new Date(currentDate).getDay() === 0 || new Date(currentDate).getDay() === 6;
+              const weekendClass = isWeekend ? "weekend" : "";
+              const todayCellClass = currentDate === todayStrGantt ? "today-col" : "";
+              const selectedCellClass = currentDate === selectedGanttDate ? "selected-col" : "";
+
+              if (currentDate === task.startDate) {
+                let spanCount = 0;
+                let tempIdx = i;
+
+                while (tempIdx < GANTT_DATES.length && GANTT_DATES[tempIdx] <= task.endDate) {
+                  spanCount++;
+                  tempIdx++;
+                }
+
+                const assigneeData = getAssigneeData(task.assignee);
+
+                let spanSelectedClass = "";
+                if (selectedGanttDate && task.startDate <= selectedGanttDate && selectedGanttDate <= task.endDate) {
+                  spanSelectedClass = "has-selected-date";
+                }
+
+                rowHtml += `
+              <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}">
+                <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
+                </div>
+              </td>
+            `;
+                i += (spanCount - 1);
+              } else {
+                rowHtml += `<td class="gantt-date-cell empty-cell-clickable ${weekendClass} ${todayCellClass} ${selectedCellClass}" onclick="openTaskModal(null, '${currentDate}', '${task.category}')" title="Klik untuk buat tugas baru di tanggal ${currentDate} (${task.category})"></td>`;
+              }
+            }
+
+            rowHtml += `</tr>`;
+            elGanttTbody.innerHTML += rowHtml;
+          });
+        }
       });
+      lucide.createIcons();
 
       scrollToAugustOrFirstTask();
     }
