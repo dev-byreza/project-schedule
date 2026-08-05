@@ -2790,23 +2790,42 @@
     }
 
     function initData() {
-      // Cloud API Fetch (Vercel + Prisma Postgres)
+      // Cloud API Fetch (Vercel + Supabase PostgreSQL)
       fetch('/api/data')
         .then(res => res.json())
         .then(data => {
-          if (data && !data.error) {
+          if (data && !data.error && Array.isArray(data.tasks)) {
             appProjects = (data.projects && data.projects.length > 0) ? data.projects : ["Wisuda XXXIII"];
             appAssignees = (data.assignees && data.assignees.length > 0) ? data.assignees : [
               { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
               { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
               { id: "timmhs", name: "TIM MHS", color: "#10b981" }
             ];
-            appTasks = data.tasks || [];
+
+            const localTasksStr = localStorage.getItem("project_schedule_tasks");
+            let localTasks = [];
+            try { if (localTasksStr) localTasks = JSON.parse(localTasksStr); } catch (e) {}
+
+            // Safety: if cloud has 0 tasks but localStorage has tasks, protect local data and sync to cloud
+            if (data.tasks.length === 0 && localTasks.length > 0) {
+              console.log("Cloud tasks empty, restoring from localStorage and syncing to cloud database...");
+              appTasks = localTasks;
+              saveTasksToLocalStorage();
+            } else {
+              appTasks = data.tasks;
+            }
+
             appCategories = (data.categories && data.categories.length > 0) ? data.categories : [...INITIAL_CATEGORIES];
 
             if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
               currentProject = appProjects[0];
             }
+
+            // Sync localStorage cache
+            localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+            localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
+            localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
+            localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
 
             migrateDataFrom32To33();
             finishLoadAndRender();
@@ -2815,20 +2834,36 @@
           }
         })
         .catch(err => {
-          console.warn("Cloud API unavailable, using local fallback:", err);
+          console.warn("Cloud API unavailable, using local cache:", err);
           loadFallbackAndRender();
         });
     }
 
     function loadFallbackAndRender() {
-      appProjects = ["Wisuda XXXIII"];
-      appAssignees = [
-        { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
-        { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
-        { id: "timmhs", name: "TIM MHS", color: "#10b981" }
-      ];
-      appTasks = [];
-      appCategories = [...INITIAL_CATEGORIES];
+      try {
+        const localTasks = localStorage.getItem("project_schedule_tasks");
+        const localProjects = localStorage.getItem("project_schedule_projects");
+        const localCategories = localStorage.getItem("project_schedule_categories");
+        const localAssignees = localStorage.getItem("project_schedule_assignees");
+
+        if (localTasks) appTasks = JSON.parse(localTasks);
+        else appTasks = [];
+
+        if (localProjects) appProjects = JSON.parse(localProjects);
+        else appProjects = ["Wisuda XXXIII"];
+
+        if (localCategories) appCategories = JSON.parse(localCategories);
+        else appCategories = [...INITIAL_CATEGORIES];
+
+        if (localAssignees) appAssignees = JSON.parse(localAssignees);
+        else appAssignees = [
+          { id: "reza", name: "REZA FEBRIADI", color: "#f59e0b" },
+          { id: "annas", name: "KAK ANNAS", color: "#38bdf8" },
+          { id: "timmhs", name: "TIM MHS", color: "#10b981" }
+        ];
+      } catch (e) {
+        console.error("Error reading localStorage fallback:", e);
+      }
 
       if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
         currentProject = appProjects[0];
@@ -3240,6 +3275,7 @@
             if (!appCategories.includes(trimmed)) {
               appCategories.push(trimmed);
               localStorage.setItem("project_schedule_categories", JSON.stringify(appCategories));
+              saveTasksToLocalStorage(); // Sync to Supabase cloud
               populateDropdowns();
             }
             e.target.value = trimmed;
@@ -3261,10 +3297,12 @@
 
             appAssignees.push({ id, name: trimmed, color });
             localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+            saveTasksToLocalStorage(); // Sync to Supabase cloud
 
             populateAssigneeDropdowns();
             e.target.value = id;
             renderDashboardStats();
+            showToast(`👤 Anggota "${trimmed}" berhasil ditambahkan.`, 'success');
           } else {
             e.target.value = appAssignees[0]?.id || "";
           }
@@ -3283,10 +3321,12 @@
 
             appAssignees.push({ id, name: trimmed, color });
             localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+            saveTasksToLocalStorage(); // Sync to Supabase cloud
 
             populateAssigneeDropdowns();
             e.target.value = id;
             renderAllViews();
+            showToast(`👤 Anggota "${trimmed}" berhasil ditambahkan.`, 'success');
           } else {
             e.target.value = "";
             renderAllViews();
@@ -3914,13 +3954,14 @@
 
       appAssignees = updatedAssignees;
       localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+      saveTasksToLocalStorage(); // Sync updated assignees to cloud
 
       gcalService.updateCredentials(clientId, apiKey, calendarId);
       modalSettings.classList.remove("active");
 
       populateAssigneeDropdowns();
       renderAllViews();
-      alert("Pengaturan berhasil disimpan!");
+      showToast("⚙️ Pengaturan & Anggota berhasil disimpan.", "success");
     }
 
     /* ==========================================================================
