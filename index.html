@@ -3487,13 +3487,10 @@
               }
 
               const assigneeData = getAssigneeData(task.assignee);
-              // Build a short text label if bar is wide enough
-              const barLabel = spanCount >= 3 ? `<span class="gantt-bar-content">${task.title}</span>` : '';
 
               rowHtml += `
             <td class="gantt-date-cell ${weekendClass} ${todayCellClass}" colspan="${spanCount}">
               <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
-                ${barLabel}
               </div>
             </td>
           `;
