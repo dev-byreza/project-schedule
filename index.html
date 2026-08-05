@@ -642,49 +642,22 @@
     }
 
     .gantt-bar-handle {
-      width: 14px;
+      width: 6px;
       height: 100%;
       position: absolute;
       top: 0;
       cursor: ew-resize !important;
       z-index: 20;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.15s ease;
-    }
-
-    .gantt-bar-handle::after {
-      content: '';
-      width: 3px;
-      height: 50%;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 2px;
-      opacity: 0.4;
-      transition: opacity 0.15s ease, background-color 0.15s ease, height 0.15s ease;
-    }
-
-    .gantt-bar-wrapper:hover .gantt-bar-handle::after {
-      opacity: 0.85;
-    }
-
-    .gantt-bar-handle:hover::after {
-      opacity: 1 !important;
-      background: #ffffff;
-      height: 75%;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+      background: transparent !important;
+      opacity: 0 !important;
     }
 
     .gantt-bar-handle.handle-left {
       left: 0;
-      border-top-left-radius: 0.4rem;
-      border-bottom-left-radius: 0.4rem;
     }
 
     .gantt-bar-handle.handle-right {
       right: 0;
-      border-top-right-radius: 0.4rem;
-      border-bottom-right-radius: 0.4rem;
     }
 
     .gantt-bar-wrapper.gantt-bar-dragging {
