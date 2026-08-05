@@ -526,8 +526,9 @@
 
     .gantt-month-sticky-container {
       position: sticky;
-      left: 0;
-      width: min(100%, calc(100vw - 4rem));
+      left: 280px;
+      width: calc(100vw - 280px - 4rem);
+      max-width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -574,9 +575,9 @@
     }
 
     .date-column-header {
-      width: 38px;
-      min-width: 38px;
-      font-size: 0.75rem;
+      width: 57px;
+      min-width: 57px;
+      font-size: 0.8rem;
       transition: var(--transition-fast);
       cursor: pointer;
       user-select: none;
@@ -625,10 +626,11 @@
     .gantt-category-sticky-header {
       position: sticky;
       left: 0;
-      width: min(100%, calc(100vw - 4rem));
+      width: 280px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-left: 1rem;
       height: 2.5rem;
       color: var(--text-category-header, #ffffff);
       font-weight: 800;
@@ -636,7 +638,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       pointer-events: none;
-      z-index: 5;
+      z-index: 25;
     }
 
     .btn-add-cat-task {
