@@ -4033,11 +4033,23 @@
       }
 
       lucide.createIcons();
+
+      const saveBtn = document.getElementById("btn-save-task");
+      if (saveBtn) {
+        saveBtn.textContent = "Simpan";
+        saveBtn.disabled = false;
+      }
+
       modalTask.classList.add("active");
     }
 
     function closeTaskModal() {
       modalTask.classList.remove("active");
+      const saveBtn = document.getElementById("btn-save-task");
+      if (saveBtn) {
+        saveBtn.textContent = "Simpan";
+        saveBtn.disabled = false;
+      }
     }
 
     async function saveTaskForm(e) {
@@ -4075,7 +4087,6 @@
 
       // Show saving indicator
       const saveBtn = document.getElementById("btn-save-task");
-      const origText = saveBtn ? saveBtn.textContent : "Simpan";
       if (saveBtn) { saveBtn.textContent = "Menyimpan..."; saveBtn.disabled = true; }
 
       try {
@@ -4086,7 +4097,11 @@
         showToast(isEdit ? `✏️ Tugas "${title}" berhasil diperbarui.` : `✅ Tugas "${title}" berhasil ditambahkan.`, isEdit ? 'info' : 'success');
       } catch (err) {
         showToast('Gagal menyimpan ke database. Cek koneksi Anda.', 'error');
-        if (saveBtn) { saveBtn.textContent = origText; saveBtn.disabled = false; }
+      } finally {
+        if (saveBtn) {
+          saveBtn.textContent = "Simpan";
+          saveBtn.disabled = false;
+        }
       }
     }
 
