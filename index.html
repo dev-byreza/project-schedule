@@ -2930,6 +2930,24 @@
     function migrateDataFrom32To33() {
       let migrated = false;
 
+      // Clean up any over-migrated XXXIIII titles from previous refreshes
+      appTasks.forEach(task => {
+        if (task.title && /Wisuda XXXIII+/i.test(task.title)) {
+          const cleanedTitle = task.title.replace(/Wisuda XXXIII+/gi, "Wisuda XXXIII");
+          if (cleanedTitle !== task.title) {
+            task.title = cleanedTitle;
+            migrated = true;
+          }
+        }
+        if (task.project && /Wisuda XXXIII+/i.test(task.project)) {
+          const cleanedProj = task.project.replace(/Wisuda XXXIII+/gi, "Wisuda XXXIII");
+          if (cleanedProj !== task.project) {
+            task.project = cleanedProj;
+            migrated = true;
+          }
+        }
+      });
+
       if (appProjects.includes("Wisuda XXXII")) {
         appProjects = appProjects.map(p => p === "Wisuda XXXII" ? "Wisuda XXXIII" : p);
         migrated = true;
@@ -2952,8 +2970,8 @@
           task.category = "Wisuda XXXIII";
           migrated = true;
         }
-        if (task.title.includes("Wisuda XXXII")) {
-          task.title = task.title.replace(/Wisuda XXXII/g, "Wisuda XXXIII");
+        if (/\bWisuda XXXII\b/.test(task.title)) {
+          task.title = task.title.replace(/\bWisuda XXXII\b/g, "Wisuda XXXIII");
           migrated = true;
         }
       });
