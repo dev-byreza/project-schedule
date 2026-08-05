@@ -3776,7 +3776,10 @@
 
                 rowHtml += `
               <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}">
-                <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" data-task-id="${task.id}" onmousedown="handleGanttBarMouseDown(event, '${task.id}')" title="${task.title} — ${assigneeData.name} (Klik & tahan 2 detik untuk menggeser tanggal)">
+                <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" data-task-id="${task.id}" onmousedown="handleGanttBarMouseDown(event, '${task.id}')" title="${task.title} — ${assigneeData.name} (Geser untuk memindahkan tanggal, tarik pinggir untuk mengubah durasi)">
+                  <div class="gantt-bar-handle handle-left" onmousedown="handleGanttBarResizeStart(event, '${task.id}', 'start')" title="Tarik untuk mengubah tanggal mulai"></div>
+                  <span class="gantt-bar-title">${task.title}</span>
+                  <div class="gantt-bar-handle handle-right" onmousedown="handleGanttBarResizeStart(event, '${task.id}', 'end')" title="Tarik untuk mengubah tanggal selesai"></div>
                 </div>
               </td>
             `;
@@ -3920,68 +3923,85 @@
     }
 
     /* ==========================================================================
-       GANTT TASK BAR 2-SECOND LONG-PRESS DRAG & DROP
+       INSTANT DRAG & RESIZE FOR GANTT TASK BARS
        ========================================================================== */
 
-    let ganttDragState = {
+    let ganttInteraction = {
+      mode: null, // 'move', 'resize-start', 'resize-end'
       active: false,
-      isHolding: false,
       taskId: null,
       task: null,
-      holdTimer: null,
       startX: 0,
       startY: 0,
       durationDays: 0,
-      targetDate: null
+      targetDate: null,
+      hasDragged: false
     };
 
     function handleGanttBarMouseDown(e, taskId) {
       if (e.button !== 0) return;
+      if (e.target.classList.contains('gantt-bar-handle')) return;
 
       const task = appTasks.find(t => t.id === taskId);
       if (!task) return;
 
-      const barEl = e.currentTarget;
-
-      ganttDragState.taskId = taskId;
-      ganttDragState.task = task;
-      ganttDragState.startX = e.clientX;
-      ganttDragState.startY = e.clientY;
-      ganttDragState.isHolding = false;
-      ganttDragState.active = false;
-      ganttDragState.targetDate = null;
+      ganttInteraction.mode = 'move';
+      ganttInteraction.taskId = taskId;
+      ganttInteraction.task = task;
+      ganttInteraction.startX = e.clientX;
+      ganttInteraction.startY = e.clientY;
+      ganttInteraction.active = false;
+      ganttInteraction.hasDragged = false;
+      ganttInteraction.targetDate = null;
 
       const startMs = new Date(task.startDate).getTime();
       const endMs = new Date(task.endDate).getTime();
-      ganttDragState.durationDays = Math.max(0, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)));
+      ganttInteraction.durationDays = Math.max(0, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)));
 
-      barEl.classList.add("gantt-bar-holding");
-
-      ganttDragState.holdTimer = setTimeout(() => {
-        ganttDragState.isHolding = true;
-        ganttDragState.active = true;
-        barEl.classList.remove("gantt-bar-holding");
-        barEl.classList.add("gantt-bar-dragging");
-        document.body.style.cursor = "grabbing";
-
-        showToast(`↔️ Siap digeser: "${task.title}". Geser mouse ke tanggal baru lalu lepaskan.`, 'info');
-      }, 2000);
-
-      window.addEventListener("mousemove", handleGanttBarMouseMove);
-      window.addEventListener("mouseup", handleGanttBarMouseUp);
+      window.addEventListener("mousemove", handleGanttInteractionMouseMove);
+      window.addEventListener("mouseup", handleGanttInteractionMouseUp);
     }
 
-    function handleGanttBarMouseMove(e) {
-      const dx = Math.abs(e.clientX - ganttDragState.startX);
-      const dy = Math.abs(e.clientY - ganttDragState.startY);
+    function handleGanttBarResizeStart(e, taskId, resizeType) {
+      if (e.button !== 0) return;
+      e.stopPropagation();
 
-      if (!ganttDragState.active && (dx > 8 || dy > 8)) {
-        clearTimeout(ganttDragState.holdTimer);
-        const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttDragState.taskId}"]`);
-        if (barEl) barEl.classList.remove("gantt-bar-holding");
+      const task = appTasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const barEl = e.currentTarget.parentElement;
+
+      ganttInteraction.mode = resizeType === 'start' ? 'resize-start' : 'resize-end';
+      ganttInteraction.taskId = taskId;
+      ganttInteraction.task = task;
+      ganttInteraction.startX = e.clientX;
+      ganttInteraction.startY = e.clientY;
+      ganttInteraction.active = true;
+      ganttInteraction.hasDragged = true;
+      ganttInteraction.targetDate = null;
+
+      barEl.classList.add("gantt-bar-resizing");
+      document.body.style.cursor = "ew-resize";
+
+      window.addEventListener("mousemove", handleGanttInteractionMouseMove);
+      window.addEventListener("mouseup", handleGanttInteractionMouseUp);
+    }
+
+    function handleGanttInteractionMouseMove(e) {
+      const dx = Math.abs(e.clientX - ganttInteraction.startX);
+      const dy = Math.abs(e.clientY - ganttInteraction.startY);
+
+      if (dx > 4 || dy > 4) {
+        ganttInteraction.hasDragged = true;
+        if (ganttInteraction.mode === 'move' && !ganttInteraction.active) {
+          ganttInteraction.active = true;
+          const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
+          if (barEl) barEl.classList.add("gantt-bar-dragging");
+          document.body.style.cursor = "grabbing";
+        }
       }
 
-      if (ganttDragState.active) {
+      if (ganttInteraction.active) {
         e.preventDefault();
         const elemUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
         const dateCell = elemUnderCursor ? elemUnderCursor.closest(".gantt-date-cell, .date-column-header") : null;
@@ -3998,7 +4018,7 @@
             const dateHeaderCell = dateHeaders[headerIdx];
             const targetDateStr = dateHeaderCell.getAttribute("data-date");
             if (targetDateStr) {
-              ganttDragState.targetDate = targetDateStr;
+              ganttInteraction.targetDate = targetDateStr;
               dateHeaderCell.classList.add("drag-target-highlight");
             }
           }
@@ -4006,49 +4026,58 @@
       }
     }
 
-    async function handleGanttBarMouseUp(e) {
-      clearTimeout(ganttDragState.holdTimer);
-
-      const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttDragState.taskId}"]`);
+    async function handleGanttInteractionMouseUp(e) {
+      const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
       if (barEl) {
-        barEl.classList.remove("gantt-bar-holding", "gantt-bar-dragging");
+        barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
       }
       document.body.style.cursor = "";
       document.querySelectorAll(".drag-target-highlight").forEach(el => el.classList.remove("drag-target-highlight"));
 
-      window.removeEventListener("mousemove", handleGanttBarMouseMove);
-      window.removeEventListener("mouseup", handleGanttBarMouseUp);
+      window.removeEventListener("mousemove", handleGanttInteractionMouseMove);
+      window.removeEventListener("mouseup", handleGanttInteractionMouseUp);
 
-      if (ganttDragState.active && ganttDragState.targetDate) {
-        const task = ganttDragState.task;
-        const newStartDate = ganttDragState.targetDate;
+      if (ganttInteraction.active && ganttInteraction.targetDate) {
+        const task = ganttInteraction.task;
+        let newStart = task.startDate;
+        let newEnd = task.endDate;
 
-        const startDateObj = new Date(newStartDate);
-        startDateObj.setDate(startDateObj.getDate() + ganttDragState.durationDays);
-        const newEndDate = startDateObj.toISOString().split('T')[0];
-
-        task.startDate = newStartDate;
-        task.endDate = newEndDate;
-
-        try {
-          await saveTasksToLocalStorage();
-          renderAllViews();
-          showToast(`📅 Tanggal tugas "${task.title}" berhasil digeser ke ${newStartDate} s/d ${newEndDate}.`, 'success');
-        } catch (err) {
-          showToast('Gagal memperbarui tanggal tugas.', 'error');
+        if (ganttInteraction.mode === 'move') {
+          newStart = ganttInteraction.targetDate;
+          const startDateObj = new Date(newStart);
+          startDateObj.setDate(startDateObj.getDate() + ganttInteraction.durationDays);
+          newEnd = startDateObj.toISOString().split('T')[0];
+        } else if (ganttInteraction.mode === 'resize-start') {
+          if (ganttInteraction.targetDate <= task.endDate) {
+            newStart = ganttInteraction.targetDate;
+          }
+        } else if (ganttInteraction.mode === 'resize-end') {
+          if (ganttInteraction.targetDate >= task.startDate) {
+            newEnd = ganttInteraction.targetDate;
+          }
         }
-      } else if (!ganttDragState.active && !ganttDragState.isHolding) {
-        const dx = Math.abs(e.clientX - ganttDragState.startX);
-        const dy = Math.abs(e.clientY - ganttDragState.startY);
-        if (dx < 5 && dy < 5 && ganttDragState.taskId) {
-          openTaskModal(ganttDragState.taskId);
+
+        if (newStart !== task.startDate || newEnd !== task.endDate) {
+          task.startDate = newStart;
+          task.endDate = newEnd;
+
+          try {
+            await saveTasksToLocalStorage();
+            renderAllViews();
+            showToast(`📅 Tanggal tugas "${task.title}" diperbarui: ${newStart} s/d ${newEnd}.`, 'success');
+          } catch (err) {
+            showToast('Gagal memperbarui tanggal tugas.', 'error');
+          }
         }
+      } else if (!ganttInteraction.hasDragged && ganttInteraction.taskId) {
+        openTaskModal(ganttInteraction.taskId);
       }
 
-      ganttDragState.active = false;
-      ganttDragState.isHolding = false;
-      ganttDragState.taskId = null;
-      ganttDragState.task = null;
+      ganttInteraction.mode = null;
+      ganttInteraction.active = false;
+      ganttInteraction.hasDragged = false;
+      ganttInteraction.taskId = null;
+      ganttInteraction.task = null;
     }
 
     /* ==========================================================================
