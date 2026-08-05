@@ -3697,9 +3697,6 @@
         <td colspan="${GANTT_DATES.length + 1}">
           <div class="gantt-category-sticky-header">
             <span>${cat.toUpperCase()}</span>
-            <button type="button" onclick="openTaskModal(null, null, '${cat}')" class="btn-add-cat-task" title="Tambah tugas baru di kategori ${cat}">
-              <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i> + Tambah Tugas
-            </button>
           </div>
         </td>
       </tr>
@@ -3707,7 +3704,7 @@
 
         if (catTasks.length === 0) {
           let emptyRowHtml = `<tr class="gantt-row-task gantt-row-empty">`;
-          emptyRowHtml += `<td class="gantt-task-desc-cell empty-cat-label" onclick="openTaskModal(null, null, '${cat}')" style="cursor: pointer; color: var(--text-muted); font-style: italic;" title="Klik untuk tambah tugas di ${cat}">+ Tambah tugas baru...</td>`;
+          emptyRowHtml += `<td class="gantt-task-desc-cell empty-cat-label" style="color: var(--text-muted); font-style: italic;">(Belum ada tugas)</td>`;
 
           const todayStrGantt = new Date().toISOString().split('T')[0];
           for (let i = 0; i < GANTT_DATES.length; i++) {
