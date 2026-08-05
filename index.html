@@ -2708,7 +2708,7 @@
     let appCategories = [...INITIAL_CATEGORIES];
     let appProjects = [];
     let appAssignees = [];
-    let currentProject = "Wisuda XXXIII";
+    let currentProject = localStorage.getItem("project_schedule_last_active_project") || "Wisuda XXXIII";
 
     function hexToRgba(hex, alpha) {
       if (!hex) return 'rgba(100, 116, 139, ' + alpha + ')';
@@ -2914,7 +2914,10 @@
 
             appCategories = (data.categories && data.categories.length > 0) ? data.categories : [...INITIAL_CATEGORIES];
 
-            if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
+            const savedLastProject = localStorage.getItem("project_schedule_last_active_project");
+            if (savedLastProject && (savedLastProject === "__all__" || appProjects.includes(savedLastProject))) {
+              currentProject = savedLastProject;
+            } else if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
               currentProject = appProjects[0];
             }
 
@@ -2962,7 +2965,10 @@
         console.error("Error reading localStorage fallback:", e);
       }
 
-      if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
+      const savedLastProject = localStorage.getItem("project_schedule_last_active_project");
+      if (savedLastProject && (savedLastProject === "__all__" || appProjects.includes(savedLastProject))) {
+        currentProject = savedLastProject;
+      } else if (appProjects.length > 0 && !appProjects.includes(currentProject)) {
         currentProject = appProjects[0];
       }
 
@@ -3226,6 +3232,7 @@
             // Save database state
             localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
             localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+            localStorage.setItem("project_schedule_last_active_project", currentProject);
             saveTasksToLocalStorage();
 
             populateProjectDropdowns();
@@ -3256,6 +3263,7 @@
 
           localStorage.setItem("project_schedule_projects", JSON.stringify(appProjects));
           localStorage.setItem("project_schedule_tasks", JSON.stringify(appTasks));
+          localStorage.setItem("project_schedule_last_active_project", currentProject);
           saveTasksToLocalStorage();
 
           populateProjectDropdowns();
@@ -3345,6 +3353,7 @@
           currentProject = val;
           renderAllViews();
         }
+        localStorage.setItem("project_schedule_last_active_project", currentProject);
       });
 
       // Theme Toggle
