@@ -516,17 +516,61 @@
       padding: 0 1rem;
     }
 
-    .gantt-month-header {
+    .gantt-month-header-sticky {
       background-color: var(--bg-tertiary) !important;
-      color: var(--accent-color) !important;
-      font-size: 0.85rem;
-      letter-spacing: 0.08em;
+      padding: 0 !important;
+      height: 2.4rem;
+      border-bottom: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .gantt-month-sticky-container {
+      position: sticky;
+      left: 0;
+      width: min(100%, calc(100vw - 4rem));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 2.4rem;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    .gantt-month-sticky-title {
       font-weight: 800;
-      height: 2.2rem;
-      text-align: center;
-      border-left: 1px solid var(--border-color);
-      border-right: 1px solid var(--border-color);
+      font-size: 0.875rem;
+      letter-spacing: 0.1em;
+      color: var(--accent-color);
       text-transform: uppercase;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .gantt-month-sticky-title.switching {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    .gantt-top-scrollbar-container {
+      overflow-x: auto;
+      overflow-y: hidden;
+      height: 12px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .gantt-top-scrollbar-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .gantt-top-scrollbar-container::-webkit-scrollbar-thumb {
+      background-color: var(--accent-color);
+      border-radius: 3px;
+    }
+
+    .gantt-top-scrollbar-dummy {
+      height: 1px;
     }
 
     .date-column-header {
@@ -1919,6 +1963,10 @@
     <!-- PANEL 1: GANTT CHART -->
     <div class="view-panel active" id="panel-gantt">
       <div class="gantt-card">
+        <!-- Top Horizontal Scrollbar (Positioned right above dates) -->
+        <div class="gantt-top-scrollbar-container" id="gantt-top-scroll-wrapper">
+          <div class="gantt-top-scrollbar-dummy" id="gantt-top-scroll-dummy"></div>
+        </div>
         <div class="gantt-scrollable-container">
           <table class="gantt-table" id="gantt-table">
             <thead>
@@ -3595,40 +3643,17 @@
       const elDateRow = document.getElementById("gantt-date-header-row");
       if (!elMonthRow || !elDateRow) return;
 
-      elMonthRow.innerHTML = `<th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job Description</th>`;
-      elDateRow.innerHTML = "";
-
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // Group GANTT_DATES by Month
-      const monthGroups = [];
-      let currentMonthKey = null;
-      let currentGroup = null;
-
-      GANTT_DATES.forEach(dateStr => {
-        const [y, m] = dateStr.split('-');
-        const monthIdx = parseInt(m, 10) - 1;
-        const key = `${y}-${m}`;
-
-        if (key !== currentMonthKey) {
-          currentMonthKey = key;
-          currentGroup = {
-            year: y,
-            monthIdx: monthIdx,
-            name: MONTH_NAMES_ID[monthIdx] || `Bulan ${m}`,
-            count: 0
-          };
-          monthGroups.push(currentGroup);
-        }
-        currentGroup.count++;
-      });
-
-      // Render Month Header Row
-      monthGroups.forEach(g => {
-        elMonthRow.innerHTML += `
-          <th colspan="${g.count}" class="gantt-month-header">${g.name} ${g.year}</th>
-        `;
-      });
+      elMonthRow.innerHTML = `
+        <th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job Description</th>
+        <th colspan="${GANTT_DATES.length}" class="gantt-month-header-sticky">
+          <div class="gantt-month-sticky-container">
+            <span class="gantt-month-sticky-title" id="gantt-active-month-text">AGUSTUS 2026</span>
+          </div>
+        </th>
+      `;
+      elDateRow.innerHTML = "";
 
       // Render Date Header Row
       GANTT_DATES.forEach(dateStr => {
@@ -3805,7 +3830,91 @@
           container.scrollLeft = scrollPos;
           hasInitialGanttScrolled = true;
         }
+
+        setupGanttMonthTrackerAndTopScrollbar();
       }, 100);
+    }
+
+    let currentMonthTrackerText = "";
+
+    function setupGanttMonthTrackerAndTopScrollbar() {
+      const container = document.querySelector(".gantt-scrollable-container");
+      const topWrapper = document.getElementById("gantt-top-scroll-wrapper");
+      const dummy = document.getElementById("gantt-top-scroll-dummy");
+      const table = document.getElementById("gantt-table");
+
+      if (!container) return;
+
+      if (topWrapper && dummy && table) {
+        const updateDummyWidth = () => {
+          dummy.style.width = `${table.scrollWidth}px`;
+        };
+        updateDummyWidth();
+        setTimeout(updateDummyWidth, 200);
+
+        let isSyncingTop = false;
+        let isSyncingMain = false;
+
+        topWrapper.addEventListener("scroll", () => {
+          if (!isSyncingMain) {
+            isSyncingTop = true;
+            container.scrollLeft = topWrapper.scrollLeft;
+          }
+          isSyncingMain = false;
+        });
+
+        container.addEventListener("scroll", () => {
+          if (!isSyncingTop) {
+            isSyncingMain = true;
+            topWrapper.scrollLeft = container.scrollLeft;
+          }
+          isSyncingTop = false;
+        });
+      }
+
+      container.addEventListener("scroll", updateMonthTrackerOnScroll);
+      updateMonthTrackerOnScroll();
+    }
+
+    function updateMonthTrackerOnScroll() {
+      const container = document.querySelector(".gantt-scrollable-container");
+      const monthTextEl = document.getElementById("gantt-active-month-text");
+      if (!container || !monthTextEl) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.left + containerRect.width / 2;
+
+      const headers = document.querySelectorAll(".date-column-header[data-date]");
+      let visibleDate = null;
+
+      for (const h of headers) {
+        const rect = h.getBoundingClientRect();
+        if (rect.left <= centerX && rect.right >= centerX) {
+          visibleDate = h.getAttribute("data-date");
+          break;
+        }
+      }
+
+      if (!visibleDate && headers.length > 0) {
+        visibleDate = headers[0].getAttribute("data-date");
+      }
+
+      if (visibleDate) {
+        const parts = visibleDate.split('-');
+        const year = parts[0];
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const monthName = MONTH_NAMES_ID[monthIdx] || "";
+        const targetText = `${monthName} ${year}`;
+
+        if (targetText !== currentMonthTrackerText) {
+          currentMonthTrackerText = targetText;
+          monthTextEl.classList.add("switching");
+          setTimeout(() => {
+            monthTextEl.textContent = targetText;
+            monthTextEl.classList.remove("switching");
+          }, 120);
+        }
+      }
     }
 
     /* ==========================================================================
