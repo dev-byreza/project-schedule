@@ -3776,7 +3776,7 @@
 
                 rowHtml += `
               <td class="gantt-date-cell ${weekendClass} ${todayCellClass} ${selectedCellClass} ${spanSelectedClass}" colspan="${spanCount}">
-                <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" onclick="openTaskModal('${task.id}')" title="${task.title} — ${assigneeData.name}">
+                <div class="gantt-bar-wrapper" style="${assigneeData.bgStyle}" data-task-id="${task.id}" onmousedown="handleGanttBarMouseDown(event, '${task.id}')" title="${task.title} — ${assigneeData.name} (Klik & tahan 2 detik untuk menggeser tanggal)">
                 </div>
               </td>
             `;
@@ -3917,6 +3917,138 @@
           }, 120);
         }
       }
+    }
+
+    /* ==========================================================================
+       GANTT TASK BAR 2-SECOND LONG-PRESS DRAG & DROP
+       ========================================================================== */
+
+    let ganttDragState = {
+      active: false,
+      isHolding: false,
+      taskId: null,
+      task: null,
+      holdTimer: null,
+      startX: 0,
+      startY: 0,
+      durationDays: 0,
+      targetDate: null
+    };
+
+    function handleGanttBarMouseDown(e, taskId) {
+      if (e.button !== 0) return;
+
+      const task = appTasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const barEl = e.currentTarget;
+
+      ganttDragState.taskId = taskId;
+      ganttDragState.task = task;
+      ganttDragState.startX = e.clientX;
+      ganttDragState.startY = e.clientY;
+      ganttDragState.isHolding = false;
+      ganttDragState.active = false;
+      ganttDragState.targetDate = null;
+
+      const startMs = new Date(task.startDate).getTime();
+      const endMs = new Date(task.endDate).getTime();
+      ganttDragState.durationDays = Math.max(0, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)));
+
+      barEl.classList.add("gantt-bar-holding");
+
+      ganttDragState.holdTimer = setTimeout(() => {
+        ganttDragState.isHolding = true;
+        ganttDragState.active = true;
+        barEl.classList.remove("gantt-bar-holding");
+        barEl.classList.add("gantt-bar-dragging");
+        document.body.style.cursor = "grabbing";
+
+        showToast(`↔️ Siap digeser: "${task.title}". Geser mouse ke tanggal baru lalu lepaskan.`, 'info');
+      }, 2000);
+
+      window.addEventListener("mousemove", handleGanttBarMouseMove);
+      window.addEventListener("mouseup", handleGanttBarMouseUp);
+    }
+
+    function handleGanttBarMouseMove(e) {
+      const dx = Math.abs(e.clientX - ganttDragState.startX);
+      const dy = Math.abs(e.clientY - ganttDragState.startY);
+
+      if (!ganttDragState.active && (dx > 8 || dy > 8)) {
+        clearTimeout(ganttDragState.holdTimer);
+        const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttDragState.taskId}"]`);
+        if (barEl) barEl.classList.remove("gantt-bar-holding");
+      }
+
+      if (ganttDragState.active) {
+        e.preventDefault();
+        const elemUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+        const dateCell = elemUnderCursor ? elemUnderCursor.closest(".gantt-date-cell, .date-column-header") : null;
+
+        document.querySelectorAll(".drag-target-highlight").forEach(el => el.classList.remove("drag-target-highlight"));
+
+        if (dateCell) {
+          const parentRow = dateCell.parentElement;
+          const dateCellIndex = Array.from(parentRow.children).indexOf(dateCell);
+          const dateHeaders = document.querySelectorAll(".date-column-header");
+
+          const headerIdx = dateCellIndex - 1;
+          if (headerIdx >= 0 && headerIdx < dateHeaders.length) {
+            const dateHeaderCell = dateHeaders[headerIdx];
+            const targetDateStr = dateHeaderCell.getAttribute("data-date");
+            if (targetDateStr) {
+              ganttDragState.targetDate = targetDateStr;
+              dateHeaderCell.classList.add("drag-target-highlight");
+            }
+          }
+        }
+      }
+    }
+
+    async function handleGanttBarMouseUp(e) {
+      clearTimeout(ganttDragState.holdTimer);
+
+      const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttDragState.taskId}"]`);
+      if (barEl) {
+        barEl.classList.remove("gantt-bar-holding", "gantt-bar-dragging");
+      }
+      document.body.style.cursor = "";
+      document.querySelectorAll(".drag-target-highlight").forEach(el => el.classList.remove("drag-target-highlight"));
+
+      window.removeEventListener("mousemove", handleGanttBarMouseMove);
+      window.removeEventListener("mouseup", handleGanttBarMouseUp);
+
+      if (ganttDragState.active && ganttDragState.targetDate) {
+        const task = ganttDragState.task;
+        const newStartDate = ganttDragState.targetDate;
+
+        const startDateObj = new Date(newStartDate);
+        startDateObj.setDate(startDateObj.getDate() + ganttDragState.durationDays);
+        const newEndDate = startDateObj.toISOString().split('T')[0];
+
+        task.startDate = newStartDate;
+        task.endDate = newEndDate;
+
+        try {
+          await saveTasksToLocalStorage();
+          renderAllViews();
+          showToast(`📅 Tanggal tugas "${task.title}" berhasil digeser ke ${newStartDate} s/d ${newEndDate}.`, 'success');
+        } catch (err) {
+          showToast('Gagal memperbarui tanggal tugas.', 'error');
+        }
+      } else if (!ganttDragState.active && !ganttDragState.isHolding) {
+        const dx = Math.abs(e.clientX - ganttDragState.startX);
+        const dy = Math.abs(e.clientY - ganttDragState.startY);
+        if (dx < 5 && dy < 5 && ganttDragState.taskId) {
+          openTaskModal(ganttDragState.taskId);
+        }
+      }
+
+      ganttDragState.active = false;
+      ganttDragState.isHolding = false;
+      ganttDragState.taskId = null;
+      ganttDragState.task = null;
     }
 
     /* ==========================================================================
