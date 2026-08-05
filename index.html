@@ -506,27 +506,33 @@
     .gantt-table th.job-desc-header {
       min-width: 280px;
       width: 280px;
-      background-color: var(--bg-secondary);
+      max-width: 280px;
+      background-color: var(--bg-secondary) !important;
       position: sticky;
       left: 0;
-      z-index: 10;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      z-index: 30;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
       text-align: left;
       padding: 0 1rem;
     }
 
-    .gantt-table th.project-schedule-title {
-      background-color: var(--bg-tertiary);
-      color: var(--text-primary);
-      font-size: 0.95rem;
-      letter-spacing: 0.05em;
+    .gantt-month-header {
+      background-color: var(--bg-tertiary) !important;
+      color: var(--accent-color) !important;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
       font-weight: 800;
-      height: 2rem;
+      height: 2.2rem;
+      text-align: center;
+      border-left: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      text-transform: uppercase;
     }
 
     .date-column-header {
-      width: 45px;
-      min-width: 45px;
+      width: 38px;
+      min-width: 38px;
+      font-size: 0.75rem;
       transition: var(--transition-fast);
     }
 
@@ -561,16 +567,19 @@
     .gantt-task-desc-cell {
       position: sticky;
       left: 0;
-      background-color: var(--bg-secondary);
-      z-index: 9;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-      font-weight: 500;
+      background-color: var(--bg-secondary) !important;
+      z-index: 20;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
+      font-weight: 600;
       color: var(--text-primary);
       padding: 0 1rem;
       text-align: left;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      min-width: 280px;
+      width: 280px;
+      max-width: 280px;
     }
 
     .gantt-row-task:hover .gantt-task-desc-cell {
@@ -1840,15 +1849,14 @@
         <div class="gantt-scrollable-container">
           <table class="gantt-table" id="gantt-table">
             <thead>
-              <!-- Top Row: Project Schedule Title Banner -->
-              <tr>
-                <th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job
-                  Description</th>
-                <th colspan="16" class="project-schedule-title">Project Schedule (Juli - Agustus 2026)</th>
+              <!-- Top Row: Month Headers (JANUARI 2026 ... DESEMBER 2026) -->
+              <tr id="gantt-month-header-row">
+                <th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job Description</th>
+                <!-- Populated dynamically with month headers -->
               </tr>
-              <!-- Second Row: Date Numbers -->
+              <!-- Second Row: Date Numbers (1..31) -->
               <tr id="gantt-date-header-row">
-                <!-- Populated dynamically: 30, 31, 1, 2, ... 14 -->
+                <!-- Populated dynamically -->
               </tr>
             </thead>
             <tbody id="gantt-tbody">
@@ -2162,6 +2170,46 @@
     </div>
   </div>
 
+  <!-- Modal: Change Assignee Timeline Color Popup -->
+  <div class="modal-backdrop" id="modal-assignee-color" style="z-index: 10001;">
+    <div class="modal-content" style="max-width: 440px; border-radius: 1.25rem; border: 1px solid var(--border-color); background: var(--bg-modal); backdrop-filter: var(--glass-blur);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <h2 class="modal-title" style="font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="palette"></i>
+          Ubah Warna Timeline — <span id="assignee-color-modal-name" style="color: var(--accent-color);"></span>
+        </h2>
+        <button class="btn-icon" id="btn-close-assignee-color" style="border: none; background: none; cursor: pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <input type="hidden" id="assignee-color-modal-id">
+        <label class="form-label" style="margin-bottom: 0.75rem; font-weight: 600;">Pilih Palette Warna Timeline:</label>
+
+        <!-- Preset Color Swatches -->
+        <div id="assignee-color-presets" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.6rem; margin-bottom: 1.25rem;">
+          <!-- Filled dynamically -->
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+          <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Warna Kustom:</span>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <input type="color" id="assignee-custom-color-input" style="width: 2.5rem; height: 2.2rem; border: 1px solid var(--border-color); border-radius: 0.5rem; cursor: pointer; padding: 0; background: none;">
+            <span id="assignee-custom-color-hex" style="font-size: 0.85rem; font-weight: 700; font-family: monospace;">#000000</span>
+          </div>
+        </div>
+
+        <!-- Preview Bar -->
+        <label class="form-label" style="margin-bottom: 0.5rem; font-weight: 600;">Pratinjau Tampilan Timeline:</label>
+        <div id="assignee-color-preview-bar" style="height: 2.2rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; box-shadow: var(--shadow-sm); transition: var(--transition-fast);">
+          Pratinjau Timeline Bar
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="btn-cancel-assignee-color">Batal</button>
+        <button class="btn btn-primary" id="btn-save-assignee-color">Simpan Warna</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Inline Lucide Icons Polyfill (GAS CSP-compatible) -->
   <script>
     // Minimal Lucide polyfill - renders simple SVG symbols inline
@@ -2202,6 +2250,7 @@
       "loader": `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.24 7.76 2.83-2.83"/><path d="M20 12h-4"/><path d="m16.24 16.24 2.83 2.83"/><path d="M12 18v4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M4 12H.01"/><path d="m4.93 4.93 2.83 2.83"/></svg>`,
       "user-minus": `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>`,
       "user-plus": `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>`,
+      "palette": `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.92 0 1.7-.66 1.7-1.5 0-.41-.16-.79-.43-1.07-.27-.27-.44-.66-.44-1.09 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.97-4.03-9-10-9z"/></svg>`,
     };
     const lucide = {
       createIcons() {
@@ -2668,12 +2717,20 @@
 
     let currentCalendarDate = new Date(2026, 7, 1); // August 2026
 
-    const GANTT_DATES = [
-      "2026-07-30", "2026-07-31",
-      "2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05",
-      "2026-08-06", "2026-08-07", "2026-08-08", "2026-08-09", "2026-08-10",
-      "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14"
-    ];
+    function generateFullYearDates(year = 2026) {
+      const dates = [];
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        dates.push(`${y}-${m}-${day}`);
+      }
+      return dates;
+    }
+
+    const GANTT_DATES = generateFullYearDates(2026);
 
     // UI elements
     const elTotalTasks = document.getElementById("stat-total-tasks");
@@ -3334,6 +3391,19 @@
         }
       });
 
+      // Assignee color picker modal handlers
+      document.getElementById("btn-close-assignee-color").addEventListener("click", closeAssigneeColorModal);
+      document.getElementById("btn-cancel-assignee-color").addEventListener("click", closeAssigneeColorModal);
+      document.getElementById("btn-save-assignee-color").addEventListener("click", saveAssigneeColorModal);
+
+      const colorInput = document.getElementById("assignee-custom-color-input");
+      if (colorInput) {
+        colorInput.addEventListener("input", (e) => {
+          selectedAssigneeColor = e.target.value;
+          updateAssigneeColorModalPreview(selectedAssigneeColor);
+        });
+      }
+
       // Settings Modal Handlers
       document.getElementById("btn-open-settings").addEventListener("click", () => {
         modalSettings.classList.add("active");
@@ -3431,10 +3501,52 @@
        GANTT VIEW RENDER ENGINE
        ========================================================================== */
 
+    const MONTH_NAMES_ID = [
+      "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI",
+      "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"
+    ];
+
     function renderGanttHeaders() {
-      elGanttDateHeaderRow.innerHTML = "";
+      const elMonthRow = document.getElementById("gantt-month-header-row");
+      const elDateRow = document.getElementById("gantt-date-header-row");
+      if (!elMonthRow || !elDateRow) return;
+
+      elMonthRow.innerHTML = `<th rowspan="2" class="job-desc-header" style="text-align: center; vertical-align: middle;">Job Description</th>`;
+      elDateRow.innerHTML = "";
+
       const todayStr = new Date().toISOString().split('T')[0];
 
+      // Group GANTT_DATES by Month
+      const monthGroups = [];
+      let currentMonthKey = null;
+      let currentGroup = null;
+
+      GANTT_DATES.forEach(dateStr => {
+        const [y, m] = dateStr.split('-');
+        const monthIdx = parseInt(m, 10) - 1;
+        const key = `${y}-${m}`;
+
+        if (key !== currentMonthKey) {
+          currentMonthKey = key;
+          currentGroup = {
+            year: y,
+            monthIdx: monthIdx,
+            name: MONTH_NAMES_ID[monthIdx] || `Bulan ${m}`,
+            count: 0
+          };
+          monthGroups.push(currentGroup);
+        }
+        currentGroup.count++;
+      });
+
+      // Render Month Header Row
+      monthGroups.forEach(g => {
+        elMonthRow.innerHTML += `
+          <th colspan="${g.count}" class="gantt-month-header">${g.name} ${g.year}</th>
+        `;
+      });
+
+      // Render Date Header Row
       GANTT_DATES.forEach(dateStr => {
         const d = new Date(dateStr);
         const dayNum = d.getDate();
@@ -3443,9 +3555,9 @@
         const todayClass = dateStr === todayStr ? "today-col" : "";
         const todayMark = dateStr === todayStr ? " ●" : "";
 
-        elGanttDateHeaderRow.innerHTML += `
-      <th class="date-column-header ${weekendClass} ${todayClass}">${dayNum}${todayMark}</th>
-    `;
+        elDateRow.innerHTML += `
+          <th class="date-column-header ${weekendClass} ${todayClass}" data-date="${dateStr}">${dayNum}${todayMark}</th>
+        `;
       });
     }
 
@@ -3453,31 +3565,27 @@
       elGanttTbody.innerHTML = "";
       const filteredTasks = getFilteredTasks();
 
-      const elProjTitleHeader = document.querySelector(".project-schedule-title");
-      if (elProjTitleHeader) {
-        const projLabel = currentProject === "__all__" ? "Semua Project" : currentProject;
-        elProjTitleHeader.textContent = `Schedule: ${projLabel} (Juli - Agustus 2026)`;
-      }
-
-      // Populate dynamic legends
+      // Populate dynamic clickable legends
       const elLegend = document.getElementById("gantt-legend-container");
       if (elLegend) {
         elLegend.innerHTML = "";
         appAssignees.forEach(assignee => {
           const data = getAssigneeData(assignee.id);
           elLegend.innerHTML += `
-        <div class="legend-item">
-          <div class="legend-color-box" style="${data.bgStyle}; border: 1px solid var(--border-color);"></div>
-          <span>${assignee.name}</span>
+        <div class="legend-item" onclick="openAssigneeColorPicker('${assignee.id}')" title="Klik untuk mengubah warna timeline ${assignee.name}" style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; border: 1px solid var(--border-color); border-radius: 2rem; padding: 0.35rem 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--bg-card);">
+          <div class="legend-color-box" style="${data.bgStyle}; border-radius: 50%; width: 12px; height: 12px;"></div>
+          <span style="font-weight: 700; font-size: 0.8rem;">${assignee.name}</span>
+          <i data-lucide="palette" style="width: 12px; height: 12px; opacity: 0.6; margin-left: 2px;"></i>
         </div>
       `;
         });
         elLegend.innerHTML += `
-      <div class="legend-item">
-        <div class="legend-color-box" style="background-color: var(--bg-weekend); border: 1px solid var(--border-weekend);"></div>
-        <span>Akhir Pekan (Sabtu/Minggu)</span>
+      <div class="legend-item" style="border: 1px solid var(--border-color); border-radius: 2rem; padding: 0.35rem 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--bg-card);">
+        <div class="legend-color-box" style="background-color: var(--bg-weekend); border-radius: 50%; width: 12px; height: 12px; border: 1px solid var(--border-weekend);"></div>
+        <span style="font-weight: 600; font-size: 0.8rem;">Akhir Pekan (Sabtu/Minggu)</span>
       </div>
     `;
+        lucide.createIcons();
       }
 
       if (filteredTasks.length === 0) {
@@ -3544,6 +3652,16 @@
           elGanttTbody.innerHTML += rowHtml;
         });
       });
+
+      // Auto-scroll to TODAY column or task date range on initial load
+      setTimeout(() => {
+        const container = document.querySelector(".gantt-scrollable-container");
+        const todayCol = document.querySelector(".date-column-header.today-col");
+        if (container && todayCol) {
+          const scrollPos = todayCol.offsetLeft - container.clientWidth / 2;
+          container.scrollTo({ left: Math.max(0, scrollPos), behavior: 'smooth' });
+        }
+      }, 150);
     }
 
     /* ==========================================================================
@@ -3962,6 +4080,97 @@
       populateAssigneeDropdowns();
       renderAllViews();
       showToast("⚙️ Pengaturan & Anggota berhasil disimpan.", "success");
+    }
+
+    /* ==========================================================================
+       ASSIGNEE COLOR PICKER POPUP LOGIC
+       ========================================================================== */
+
+    const ASSIGNEE_PRESET_COLORS = [
+      { name: 'Amber Yellow', hex: '#f59e0b' },
+      { name: 'Sky Blue',     hex: '#38bdf8' },
+      { name: 'Emerald Green',hex: '#10b981' },
+      { name: 'Indigo Violet',hex: '#6366f1' },
+      { name: 'Rose Pink',   hex: '#f43f5e' },
+      { name: 'Purple',      hex: '#a855f7' },
+      { name: 'Coral Orange',hex: '#ff6b6b' },
+      { name: 'Teal',        hex: '#14b8a6' },
+      { name: 'Cyan',        hex: '#06b6d4' },
+      { name: 'Lime',        hex: '#84cc16' },
+      { name: 'Fuchsia',     hex: '#d946ef' },
+      { name: 'Slate Gray',  hex: '#64748b' }
+    ];
+
+    let selectedAssigneeColor = "#f59e0b";
+
+    function openAssigneeColorPicker(assigneeId) {
+      const assignee = appAssignees.find(a => a.id === assigneeId);
+      if (!assignee) return;
+
+      document.getElementById("assignee-color-modal-id").value = assignee.id;
+      document.getElementById("assignee-color-modal-name").textContent = assignee.name;
+
+      selectedAssigneeColor = assignee.color || "#6366f1";
+      updateAssigneeColorModalPreview(selectedAssigneeColor);
+
+      // Render Preset Swatches
+      const container = document.getElementById("assignee-color-presets");
+      if (container) {
+        container.innerHTML = "";
+        ASSIGNEE_PRESET_COLORS.forEach(c => {
+          const isSelected = c.hex.toLowerCase() === selectedAssigneeColor.toLowerCase();
+          const swatch = document.createElement("button");
+          swatch.type = "button";
+          swatch.style = `background-color: ${c.hex}; height: 2.2rem; border-radius: 0.5rem; border: ${isSelected ? '3px solid #ffffff' : '1px solid rgba(0,0,0,0.2)'}; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; ${isSelected ? 'transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-color);' : ''}`;
+          swatch.title = c.name;
+          swatch.onclick = () => {
+            selectedAssigneeColor = c.hex;
+            updateAssigneeColorModalPreview(selectedAssigneeColor);
+            openAssigneeColorPicker(assigneeId);
+          };
+          container.appendChild(swatch);
+        });
+      }
+
+      lucide.createIcons();
+      document.getElementById("modal-assignee-color").classList.add("active");
+    }
+
+    function updateAssigneeColorModalPreview(colorHex) {
+      const input = document.getElementById("assignee-custom-color-input");
+      const hexText = document.getElementById("assignee-custom-color-hex");
+      if (input) input.value = colorHex;
+      if (hexText) hexText.textContent = colorHex.toUpperCase();
+
+      const previewBar = document.getElementById("assignee-color-preview-bar");
+      if (previewBar) {
+        const bgStyle = `background-color: ${hexToRgba(colorHex, 0.85)}; color: ${getTextColorForBg(colorHex)};`;
+        previewBar.style = bgStyle + " height: 2.2rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; box-shadow: var(--shadow-sm);";
+      }
+    }
+
+    function closeAssigneeColorModal() {
+      document.getElementById("modal-assignee-color").classList.remove("active");
+    }
+
+    async function saveAssigneeColorModal() {
+      const assigneeId = document.getElementById("assignee-color-modal-id").value;
+      const assignee = appAssignees.find(a => a.id === assigneeId);
+      if (!assignee) return;
+
+      assignee.color = selectedAssigneeColor;
+      localStorage.setItem("project_schedule_assignees", JSON.stringify(appAssignees));
+
+      closeAssigneeColorModal();
+      populateAssigneeDropdowns();
+      renderAllViews();
+      showToast(`🎨 Warna timeline "${assignee.name}" berhasil diperbarui.`, 'success');
+
+      try {
+        await saveTasksToLocalStorage();
+      } catch (err) {
+        console.warn("Cloud sync warning after assignee color change:", err);
+      }
     }
 
     /* ==========================================================================
