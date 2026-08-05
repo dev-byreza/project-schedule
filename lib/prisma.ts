@@ -20,13 +20,8 @@ if (!connectionString) {
     }
   });
 } else {
-  // Standard PrismaClient — works with any PostgreSQL (Supabase, Neon, etc.)
-  prismaInstance = global.prisma ?? new PrismaClient({
-    datasources: {
-      db: { url: connectionString },
-    },
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
+  // Prisma v7 automatically resolves DATABASE_URL from prisma.config.ts
+  prismaInstance = global.prisma ?? new PrismaClient();
 
   if (process.env.NODE_ENV !== 'production') {
     global.prisma = prismaInstance;
