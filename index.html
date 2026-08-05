@@ -3948,8 +3948,10 @@
       active: false,
       taskId: null,
       task: null,
+      barEl: null,
       startX: 0,
       startY: 0,
+      originalWidth: 0,
       durationDays: 0,
       targetDate: null,
       hasDragged: false
@@ -3962,11 +3964,16 @@
       const task = appTasks.find(t => t.id === taskId);
       if (!task) return;
 
+      const barEl = e.currentTarget;
+      const rect = barEl.getBoundingClientRect();
+
       ganttInteraction.mode = 'move';
       ganttInteraction.taskId = taskId;
       ganttInteraction.task = task;
+      ganttInteraction.barEl = barEl;
       ganttInteraction.startX = e.clientX;
       ganttInteraction.startY = e.clientY;
+      ganttInteraction.originalWidth = rect.width;
       ganttInteraction.active = false;
       ganttInteraction.hasDragged = false;
       ganttInteraction.targetDate = null;
@@ -3987,12 +3994,15 @@
       if (!task) return;
 
       const barEl = e.currentTarget.parentElement;
+      const rect = barEl.getBoundingClientRect();
 
       ganttInteraction.mode = resizeType === 'start' ? 'resize-start' : 'resize-end';
       ganttInteraction.taskId = taskId;
       ganttInteraction.task = task;
+      ganttInteraction.barEl = barEl;
       ganttInteraction.startX = e.clientX;
       ganttInteraction.startY = e.clientY;
+      ganttInteraction.originalWidth = rect.width;
       ganttInteraction.active = true;
       ganttInteraction.hasDragged = true;
       ganttInteraction.targetDate = null;
@@ -4005,21 +4015,37 @@
     }
 
     function handleGanttInteractionMouseMove(e) {
-      const dx = Math.abs(e.clientX - ganttInteraction.startX);
-      const dy = Math.abs(e.clientY - ganttInteraction.startY);
+      const dx = e.clientX - ganttInteraction.startX;
+      const dy = e.clientY - ganttInteraction.startY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
 
-      if (dx > 4 || dy > 4) {
+      if (!ganttInteraction.active && (absDx > 4 || absDy > 4)) {
+        ganttInteraction.active = true;
         ganttInteraction.hasDragged = true;
-        if (ganttInteraction.mode === 'move' && !ganttInteraction.active) {
-          ganttInteraction.active = true;
-          const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
-          if (barEl) barEl.classList.add("gantt-bar-dragging");
+
+        if (ganttInteraction.mode === 'move') {
+          if (ganttInteraction.barEl) ganttInteraction.barEl.classList.add("gantt-bar-dragging");
           document.body.style.cursor = "grabbing";
         }
       }
 
-      if (ganttInteraction.active) {
+      if (ganttInteraction.active && ganttInteraction.barEl) {
         e.preventDefault();
+
+        // REAL-TIME LIVE VISUAL FEEDBACK (FOLLOW MOUSE INSTANTLY)
+        if (ganttInteraction.mode === 'move') {
+          ganttInteraction.barEl.style.transform = `translateX(${dx}px)`;
+        } else if (ganttInteraction.mode === 'resize-end') {
+          const newW = Math.max(25, ganttInteraction.originalWidth + dx);
+          ganttInteraction.barEl.style.width = `${newW}px`;
+        } else if (ganttInteraction.mode === 'resize-start') {
+          const newW = Math.max(25, ganttInteraction.originalWidth - dx);
+          ganttInteraction.barEl.style.transform = `translateX(${dx}px)`;
+          ganttInteraction.barEl.style.width = `${newW}px`;
+        }
+
+        // HIGHLIGHT TARGET DATE UNDER MOUSE
         const elemUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
         const dateCell = elemUnderCursor ? elemUnderCursor.closest(".gantt-date-cell, .date-column-header") : null;
 
@@ -4044,9 +4070,11 @@
     }
 
     async function handleGanttInteractionMouseUp(e) {
-      const barEl = document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
+      const barEl = ganttInteraction.barEl || document.querySelector(`.gantt-bar-wrapper[data-task-id="${ganttInteraction.taskId}"]`);
       if (barEl) {
         barEl.classList.remove("gantt-bar-dragging", "gantt-bar-resizing");
+        barEl.style.transform = "";
+        barEl.style.width = "";
       }
       document.body.style.cursor = "";
       document.querySelectorAll(".drag-target-highlight").forEach(el => el.classList.remove("drag-target-highlight"));
@@ -4095,6 +4123,7 @@
       ganttInteraction.hasDragged = false;
       ganttInteraction.taskId = null;
       ganttInteraction.task = null;
+      ganttInteraction.barEl = null;
     }
 
     /* ==========================================================================
