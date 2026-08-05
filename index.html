@@ -546,13 +546,28 @@
     }
 
     .gantt-row-category td {
-      padding: 0.6rem 1rem;
+      padding: 0;
       color: var(--text-category-header, #ffffff);
-      font-weight: 700;
-      text-align: center;
-      font-size: 0.875rem;
-      letter-spacing: 0.05em;
       border-color: var(--border-color);
+      height: 2.5rem;
+      vertical-align: middle;
+    }
+
+    .gantt-category-sticky-header {
+      position: sticky;
+      left: 0;
+      width: min(100%, calc(100vw - 4rem));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 2.5rem;
+      color: var(--text-category-header, #ffffff);
+      font-weight: 800;
+      font-size: 0.875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 5;
     }
 
     .gantt-row-task {
@@ -3612,7 +3627,11 @@
 
         elGanttTbody.innerHTML += `
       <tr class="gantt-row-category">
-        <td colspan="${GANTT_DATES.length + 1}">${cat.toUpperCase()}</td>
+        <td colspan="${GANTT_DATES.length + 1}">
+          <div class="gantt-category-sticky-header">
+            <span>${cat.toUpperCase()}</span>
+          </div>
+        </td>
       </tr>
     `;
 
