@@ -2699,7 +2699,7 @@
 
           const formattedStartDate = startDate.toISOString().split("T")[0];
           const formattedEndDate = endDate.toISOString().split("T")[0];
-          const assigneeName = INITIAL_ASSIGNEES[task.assignee]?.name || "Unassigned";
+          const assigneeName = getAssigneeData(task.assignee)?.name || "Unassigned";
 
           const event = {
             summary: `[Schedule] ${task.title}`,
@@ -2711,8 +2711,12 @@
           };
 
           try {
+            const url = this.apiKey 
+              ? `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.calendarId)}/events?key=${this.apiKey}`
+              : `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.calendarId)}/events`;
+
             const response = await fetch(
-              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.calendarId)}/events?key=${this.apiKey}`,
+              url,
               {
                 method: "POST",
                 headers: {
@@ -2724,7 +2728,7 @@
             );
 
             if (!response.ok) {
-              const errData = await response.json();
+              const errData = await response.json().catch(() => ({}));
               console.error("GCal Sync Failed:", task.title, errData);
               failCount++;
             } else {
@@ -4751,7 +4755,7 @@
     async function triggerGCalSync() {
       const tasksToSync = getFilteredTasks();
       if (tasksToSync.length === 0) {
-        alert("Tidak ada tugas yang memenuhi filter untuk disinkronkan.");
+        showToast("⚠️ Tidak ada tugas yang memenuhi filter untuk disinkronkan.", "warning");
         return;
       }
 
@@ -4759,27 +4763,36 @@
         return;
       }
 
-      modalSyncProgress.classList.add("active");
+      const modalSync = document.getElementById("modal-sync-progress");
       const titleEl = document.getElementById("sync-progress-title");
       const detailEl = document.getElementById("sync-progress-detail");
       const fillEl = document.getElementById("sync-progress-fill");
 
-      fillEl.style.width = "0%";
-      detailEl.textContent = `Tugas 0 dari ${tasksToSync.length}`;
+      if (modalSync) modalSync.classList.add("active");
+      if (fillEl) fillEl.style.width = "0%";
+      if (detailEl) detailEl.textContent = `Tugas 0 dari ${tasksToSync.length}`;
 
       try {
         const result = await gcalService.syncTasks(tasksToSync, (current, total, taskName) => {
-          const percentage = Math.round((current / total) * 100);
-          fillEl.style.width = `${percentage}%`;
-          titleEl.textContent = `Mengunggah: ${taskName}`;
-          detailEl.textContent = `Tugas ${current + 1} dari ${total}`;
+          const percentage = Math.round(((current + 1) / total) * 100);
+          if (fillEl) fillEl.style.width = `${percentage}%`;
+          if (titleEl) titleEl.textContent = `Mengunggah: ${taskName}`;
+          if (detailEl) detailEl.textContent = `Tugas ${current + 1} dari ${total}`;
         });
 
-        modalSyncProgress.classList.remove("active");
-        alert(`Sinkronisasi Selesai!\n\nBerhasil diekspor: ${result.successCount} tugas\nGagal: ${result.failCount} tugas`);
+        if (modalSync) modalSync.classList.remove("active");
+
+        if (result.successCount > 0 && result.failCount === 0) {
+          showToast(`✅ Berhasil mensinkronkan ${result.successCount} tugas ke Google Calendar!`, 'success', 5000);
+        } else if (result.successCount > 0) {
+          showToast(`⚠️ ${result.successCount} tugas berhasil disinkronkan, ${result.failCount} tugas gagal.`, 'warning', 6000);
+        } else {
+          showToast(`❌ Gagal mensinkronkan tugas ke Google Calendar. Cek ijin akses OAuth Google Calendar Anda.`, 'error', 7000);
+        }
       } catch (e) {
         console.error("GCal Sync Process Failed:", e);
-        modalSyncProgress.classList.remove("active");
+        if (modalSync) modalSync.classList.remove("active");
+        showToast(`❌ Terjadi kesalahan saat sinkronisasi: ${e.message}`, 'error', 7000);
       }
     }
 
