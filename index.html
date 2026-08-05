@@ -3401,6 +3401,8 @@
         colorInput.addEventListener("input", (e) => {
           selectedAssigneeColor = e.target.value;
           updateAssigneeColorModalPreview(selectedAssigneeColor);
+          const assigneeId = document.getElementById("assignee-color-modal-id").value;
+          if (assigneeId) renderAssigneeColorPresets(assigneeId);
         });
       }
 
@@ -4103,6 +4105,27 @@
 
     let selectedAssigneeColor = "#f59e0b";
 
+    function renderAssigneeColorPresets(assigneeId) {
+      const container = document.getElementById("assignee-color-presets");
+      if (!container) return;
+
+      container.innerHTML = "";
+      ASSIGNEE_PRESET_COLORS.forEach(c => {
+        const isSelected = c.hex.toLowerCase() === selectedAssigneeColor.toLowerCase();
+        const swatch = document.createElement("button");
+        swatch.type = "button";
+        swatch.style = `background-color: ${c.hex}; height: 2.2rem; border-radius: 0.5rem; border: ${isSelected ? '3px solid #ffffff' : '1px solid rgba(0,0,0,0.2)'}; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; ${isSelected ? 'transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-color);' : ''}`;
+        swatch.title = c.name;
+        swatch.onclick = (e) => {
+          e.preventDefault();
+          selectedAssigneeColor = c.hex;
+          updateAssigneeColorModalPreview(selectedAssigneeColor);
+          renderAssigneeColorPresets(assigneeId);
+        };
+        container.appendChild(swatch);
+      });
+    }
+
     function openAssigneeColorPicker(assigneeId) {
       const assignee = appAssignees.find(a => a.id === assigneeId);
       if (!assignee) return;
@@ -4112,25 +4135,7 @@
 
       selectedAssigneeColor = assignee.color || "#6366f1";
       updateAssigneeColorModalPreview(selectedAssigneeColor);
-
-      // Render Preset Swatches
-      const container = document.getElementById("assignee-color-presets");
-      if (container) {
-        container.innerHTML = "";
-        ASSIGNEE_PRESET_COLORS.forEach(c => {
-          const isSelected = c.hex.toLowerCase() === selectedAssigneeColor.toLowerCase();
-          const swatch = document.createElement("button");
-          swatch.type = "button";
-          swatch.style = `background-color: ${c.hex}; height: 2.2rem; border-radius: 0.5rem; border: ${isSelected ? '3px solid #ffffff' : '1px solid rgba(0,0,0,0.2)'}; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; ${isSelected ? 'transform: scale(1.1); box-shadow: 0 0 0 2px var(--accent-color);' : ''}`;
-          swatch.title = c.name;
-          swatch.onclick = () => {
-            selectedAssigneeColor = c.hex;
-            updateAssigneeColorModalPreview(selectedAssigneeColor);
-            openAssigneeColorPicker(assigneeId);
-          };
-          container.appendChild(swatch);
-        });
-      }
+      renderAssigneeColorPresets(assigneeId);
 
       lucide.createIcons();
       document.getElementById("modal-assignee-color").classList.add("active");
