@@ -1,6 +1,48 @@
 import { prisma } from '../lib/prisma.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+let isTableInitialized = false;
+
+async function ensureTablesExist() {
+  if (isTableInitialized) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Project" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT UNIQUE NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS "Category" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT UNIQUE NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS "Assignee" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "color" TEXT NOT NULL DEFAULT '#3b82f6',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS "Task" (
+        "id" TEXT PRIMARY KEY,
+        "title" TEXT NOT NULL,
+        "category" TEXT NOT NULL,
+        "assignee" TEXT NOT NULL,
+        "startDate" TEXT NOT NULL,
+        "endDate" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'todo',
+        "notes" TEXT,
+        "project" TEXT NOT NULL DEFAULT 'Wisuda XXXIII',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    isTableInitialized = true;
+  } catch (err) {
+    console.warn("Auto table creation warning:", err);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -9,10 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    await ensureTablesExist();
+
     if (req.method === 'GET') {
       let projects = await prisma.project.findMany();
       if (projects.length === 0) {
-        await prisma.project.create({ data: { name: 'Wisuda XXXIII' } });
+        await prisma.project.create({ data: { id: 'proj-default', name: 'Wisuda XXXIII' } });
         projects = await prisma.project.findMany();
       }
 
@@ -20,9 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (categories.length === 0) {
         await prisma.category.createMany({
           data: [
-            { name: 'Paket Wisudawan' },
-            { name: 'Orasi Ilmiah' },
-            { name: 'Wisuda XXXIII' },
+            { id: 'cat-1', name: 'Paket Wisudawan' },
+            { id: 'cat-2', name: 'Orasi Ilmiah' },
+            { id: 'cat-3', name: 'Wisuda XXXIII' },
           ],
         });
         categories = await prisma.category.findMany();
@@ -69,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await prisma.project.upsert({
               where: { name: p },
               update: {},
-              create: { name: p },
+              create: { id: 'proj-' + Math.random().toString(36).substr(2, 9), name: p },
             });
           }
         }
@@ -81,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             await prisma.category.upsert({
               where: { name: c },
               update: {},
-              create: { name: c },
+              create: { id: 'cat-' + Math.random().toString(36).substr(2, 9), name: c },
             });
           }
         }
@@ -127,5 +171,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: error.message });
   }
 }
-
-
