@@ -4033,15 +4033,19 @@
       if (ganttInteraction.active && ganttInteraction.barEl) {
         e.preventDefault();
 
-        // REAL-TIME LIVE VISUAL FEEDBACK (FOLLOW MOUSE INSTANTLY)
+        const CELL_WIDTH = 57;
+        const colOffset = Math.round(dx / CELL_WIDTH);
+        const snappedDx = colOffset * CELL_WIDTH;
+
+        // MAGNETIC SNAP VISUAL FEEDBACK
         if (ganttInteraction.mode === 'move') {
-          ganttInteraction.barEl.style.transform = `translateX(${dx}px)`;
+          ganttInteraction.barEl.style.transform = `translateX(${snappedDx}px)`;
         } else if (ganttInteraction.mode === 'resize-end') {
-          const newW = Math.max(25, ganttInteraction.originalWidth + dx);
+          const newW = Math.max(CELL_WIDTH, ganttInteraction.originalWidth + snappedDx);
           ganttInteraction.barEl.style.width = `${newW}px`;
         } else if (ganttInteraction.mode === 'resize-start') {
-          const newW = Math.max(25, ganttInteraction.originalWidth - dx);
-          ganttInteraction.barEl.style.transform = `translateX(${dx}px)`;
+          const newW = Math.max(CELL_WIDTH, ganttInteraction.originalWidth - snappedDx);
+          ganttInteraction.barEl.style.transform = `translateX(${snappedDx}px)`;
           ganttInteraction.barEl.style.width = `${newW}px`;
         }
 
@@ -4082,23 +4086,36 @@
       window.removeEventListener("mousemove", handleGanttInteractionMouseMove);
       window.removeEventListener("mouseup", handleGanttInteractionMouseUp);
 
-      if (ganttInteraction.active && ganttInteraction.targetDate) {
+      if (ganttInteraction.active) {
+        const dx = e.clientX - ganttInteraction.startX;
+        const CELL_WIDTH = 57;
+        const colOffset = Math.round(dx / CELL_WIDTH);
+
         const task = ganttInteraction.task;
         let newStart = task.startDate;
         let newEnd = task.endDate;
 
         if (ganttInteraction.mode === 'move') {
-          newStart = ganttInteraction.targetDate;
-          const startDateObj = new Date(newStart);
-          startDateObj.setDate(startDateObj.getDate() + ganttInteraction.durationDays);
-          newEnd = startDateObj.toISOString().split('T')[0];
+          const currentStartIdx = GANTT_DATES.indexOf(task.startDate);
+          if (currentStartIdx !== -1) {
+            const targetIdx = Math.max(0, Math.min(GANTT_DATES.length - 1, currentStartIdx + colOffset));
+            newStart = GANTT_DATES[targetIdx];
+            const endIdx = Math.max(0, Math.min(GANTT_DATES.length - 1, targetIdx + ganttInteraction.durationDays));
+            newEnd = GANTT_DATES[endIdx];
+          }
         } else if (ganttInteraction.mode === 'resize-start') {
-          if (ganttInteraction.targetDate <= task.endDate) {
-            newStart = ganttInteraction.targetDate;
+          const currentStartIdx = GANTT_DATES.indexOf(task.startDate);
+          const currentEndIdx = GANTT_DATES.indexOf(task.endDate);
+          if (currentStartIdx !== -1) {
+            const targetIdx = Math.max(0, Math.min(currentEndIdx, currentStartIdx + colOffset));
+            newStart = GANTT_DATES[targetIdx];
           }
         } else if (ganttInteraction.mode === 'resize-end') {
-          if (ganttInteraction.targetDate >= task.startDate) {
-            newEnd = ganttInteraction.targetDate;
+          const currentStartIdx = GANTT_DATES.indexOf(task.startDate);
+          const currentEndIdx = GANTT_DATES.indexOf(task.endDate);
+          if (currentEndIdx !== -1) {
+            const targetIdx = Math.max(currentStartIdx, Math.min(GANTT_DATES.length - 1, currentEndIdx + colOffset));
+            newEnd = GANTT_DATES[targetIdx];
           }
         }
 
@@ -4113,6 +4130,8 @@
           } catch (err) {
             showToast('Gagal memperbarui tanggal tugas.', 'error');
           }
+        } else {
+          renderAllViews();
         }
       } else if (!ganttInteraction.hasDragged && ganttInteraction.taskId) {
         openTaskModal(ganttInteraction.taskId);
